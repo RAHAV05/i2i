@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Doc Scanner — Clinic Mobile Platform</title>
+  <meta name="description" content="Mobile document intake and AI transcription platform for healthcare camps.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230E7C6B'/><path d='M7 9V6h3m6 0h3v3m0 6v3h-3M10 18H7v-3M7 12h10' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Desktop Viewport Toggle Pill -->
+  <button class="view-toggle-pill" id="view-toggle-btn" onclick="window.app.toggleFrame()" title="Toggle phone frame / expanded view">
+    <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+    <span id="view-toggle-text">Expand View</span>
+  </button>
+
+  <div id="phone">
+
+    <!-- 1. SPLASH SCREEN -->
+    <section class="scr on" id="splash">
+      <div class="mark"><i></i></div>
+      <h1 class="d">Doc Scanner</h1>
+      <p>Getting your health camps ready…</p>
+      <div class="bar"><b></b></div>
+    </section>
+
+    <!-- 2. LANDING SCREEN -->
+    <section class="scr" id="landing">
+      <div class="hero">
+        <div class="pg"></div>
+        <div class="pg"></div>
+        <div class="mark" style="width:44px;height:54px;border-width:2px;"><i></i></div>
+        <h1>Paper forms in.<br>Clean records out.</h1>
+        <p>Scan both pages of a health camp intake form and let Groq Vision transcribe the clinical details.</p>
+      </div>
+      <div class="feat">
+        <div>
+          <span class="ic">
+            <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+          </span>
+          <p><b>Scan both pages</b><span>Page 1 and Page 2 are automatically paired and calibrated.</span></p>
+        </div>
+        <div>
+          <span class="ic">
+            <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+          </span>
+          <p><b>Check only what is unclear</b><span>Ambiguous handwriting and missing fields are flagged in amber for the physician.</span></p>
+        </div>
+        <div>
+          <span class="ic">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          </span>
+          <p><b>Export to Excel (.xlsx)</b><span>Every camp, all 95 clinical and vitals details in one styled Microsoft Excel workbook.</span></p>
+        </div>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
+        <button class="btn" onclick="window.app.go('login')">Sign in as Doctor</button>
+        <button class="btn ghost" onclick="window.app.go('home')">Enter Demo Mode Directly</button>
+      </div>
+    </section>
+
+    <!-- 3. LOGIN SCREEN -->
+    <section class="scr" id="login">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.go('landing')">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Physician Authentication</b>
+      </div>
+      <div class="body">
+        <h1 style="font-size:30px;margin-top:14px;">Welcome back</h1>
+        <p style="color:var(--mute);margin-bottom:12px;">Sign in with your hospital or camp credentials.</p>
+        
+        <label for="login-email">Email Address</label>
+        <input id="login-email" type="email" placeholder="priya@hospital.in" value="dr.priya@clinic.org" autocomplete="email">
+        
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" value="demo1234" autocomplete="current-password">
+        
+        <p class="err" id="login-error"></p>
+        
+        <button class="btn" style="margin-top:8px;" onclick="window.app.login()">Sign in</button>
+        <button class="btn ghost" style="margin-top:10px;" onclick="window.app.loginDemo()">Use Demo Account (Dr. Priya)</button>
+        
+        <p style="text-align:center;margin-top:20px;color:var(--mute);font-size:13.5px;">
+          Camp administrator credentials? Use the desktop console.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. HOME / DASHBOARD SCREEN -->
+    <section class="scr" id="home">
+      <div class="head">
+        <div>
+          <small>Good morning</small>
+          <h2 id="home-doctor-name">Dr. Priya</h2>
+          <span class="ai-indicator-chip" id="ai-chip">● Groq Vision Active</span>
+        </div>
+        <div class="av" id="home-avatar">P</div>
+      </div>
+
+      <div class="body" id="home-body">
+        <!-- Active Camp Ring Card -->
+        <div class="active" id="active-camp-card" onclick="window.app.openCampPicker()">
+          <div class="ring" id="home-ring" style="--p:0;">
+            <div>
+              <b id="home-ring-pct">0%</b>
+              <span>done</span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="text-transform:uppercase;letter-spacing:0.04em;font-size:11px;font-weight:600;color:var(--amber);">Active Health Camp</p>
+            <h3 id="home-camp-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</h3>
+            <p id="home-camp-subtitle">0 of 0 forms</p>
+          </div>
+        </div>
+
+        <!-- 3 Dynamic Aggregate KPI Tiles -->
+        <div class="stats">
+          <div class="st">
+            <b id="kpi-scanned">0</b>
+            <span>Scanned</span>
+          </div>
+          <div class="st warn">
+            <b id="kpi-tocheck">0</b>
+            <span>To check</span>
+          </div>
+          <div class="st">
+            <b id="kpi-camps">0</b>
+            <span>Camps</span>
+          </div>
+        </div>
+
+        <!-- Quick Operational Bar -->
+        <div style="display:flex;gap:8px;margin:12px 0 4px;">
+          <button class="btn amber" style="padding:10px 12px;font-size:13px;flex:1.2;" onclick="window.app.exportExcel()">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+            📊 View & Export Excel
+          </button>
+          <button class="btn ghost" style="padding:10px 12px;font-size:13px;flex:1;" onclick="window.app.go('export')">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            View Sheet
+          </button>
+          <button class="btn ghost" style="padding:10px 12px;font-size:13px;width:auto;" onclick="window.app.openNewCampModal()" title="New Camp">
+            + Camp
+          </button>
+        </div>
+
+        <!-- Health Camps Section -->
+        <div class="sec">
+          <h3>Your Health Camps</h3>
+          <button onclick="window.app.openNewCampModal()">+ Add Camp</button>
+        </div>
+        <div id="camps-list">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Recent Records Section -->
+        <div class="sec">
+          <h3>Recent Intake Records</h3>
+          <button onclick="window.app.go('records')">View all</button>
+        </div>
+        <div id="recent-records-list">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Bottom Tab Navigation -->
+      <div class="nav">
+        <button class="on" id="nav-btn-home" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+          Home
+        </button>
+        <button id="nav-btn-records" onclick="window.app.go('records')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Records
+        </button>
+        <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+        </button>
+        <button id="nav-btn-export" onclick="window.app.go('export')">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          Excel
+        </button>
+        <button id="nav-btn-settings" onclick="window.app.go('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </section>
+
+    <!-- 5. REAL CAMERA SCANNER SCREEN -->
+    <section class="scr" id="scan">
+      <div class="top">
+        <button class="back" aria-label="Close" onclick="window.app.closeScan()">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <b id="stl">Scan Page 1: Vitals & Details</b>
+      </div>
+
+      <div class="steps">
+        <i id="s1" class="on"></i>
+        <i id="s2"></i>
+        <i id="s3"></i>
+      </div>
+
+      <div class="vf" id="vf-container">
+        <!-- Live Video Element -->
+        <video id="camera-video" playsinline autoplay muted></video>
+        <canvas id="capture-canvas" style="display:none;"></canvas>
+
+        <!-- Simulated Sheet Preview Placeholder if camera off -->
+        <div class="sheet" id="sh" data-t="Health intake form · Page 1">
+          <b>Name</b>: __________________<br>
+          <b>Age</b>: _____ <b>Gender</b>: ______<br>
+          <b>BP</b>: ________ <b>Pulse</b>: ____<br>
+          <small style="display:block;margin-top:10px;color:#7c8c9c;">Center paper form inside the yellow brackets.</small>
+        </div>
+
+        <!-- Target Overlay Brackets & Animated Laser -->
+        <i class="cr a"></i>
+        <i class="cr b"></i>
+        <i class="cr c"></i>
+        <i class="cr d"></i>
+        <i class="ln"></i>
+        <div class="flash" id="fl"></div>
+      </div>
+
+      <p class="hint" id="hnt">Fit the entire page inside the corners</p>
+
+      <!-- Shutter Controls & Live Thumbnails -->
+      <div class="ctl">
+        <div class="th" id="t1" title="Page 1 preview"></div>
+        <button class="shut" id="shutter-button" aria-label="Capture page" onclick="window.app.captureCurrentPage()">
+          <i></i>
+        </button>
+        <div class="th" id="t2" title="Page 2 preview"></div>
+      </div>
+
+      <!-- Quick Action Utilities -->
+      <div style="display:flex;justify-content:center;gap:12px;padding:0 20px 18px;">
+        <input type="file" id="camera-file-input" accept="image/*" style="display:none;" onchange="window.app.onFileUploaded(event)">
+        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="$('camera-file-input').click()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Upload Photo
+        </button>
+        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="window.app.loadDemoSamples()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Load 2-Page Sample
+        </button>
+        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="window.app.flipCamera()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          Flip
+        </button>
+      </div>
+    </section>
+
+    <!-- 6. PAIRS CHECK SCREEN -->
+    <section class="scr" id="pairs">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Check the Pair</b>
+      </div>
+      <div class="body">
+        <p style="color:var(--mute);margin-top:10px;">Verify both captured pages belong to the same patient.</p>
+        
+        <div class="pair">
+          <div class="sheet" id="pairs-p1-preview" data-t="Page 1: Vitals & Details"></div>
+          <div class="sheet" id="pairs-p2-preview" data-t="Page 2: Exam & Referral"></div>
+        </div>
+
+        <label for="pairs-person-name">Patient Name (Optional pre-check)</label>
+        <input id="pairs-person-name" placeholder="e.g. Ramesh Kumar (or AI will transcribe)">
+
+        <label for="pairs-camp-select">Health Camp Assignment</label>
+        <select id="pairs-camp-select">
+          <!-- Populated from state -->
+        </select>
+
+        <p class="err" id="pairs-err"></p>
+
+        <button class="btn" id="extract-run-btn" style="margin-top:6px;" onclick="window.app.saveAndExtract()">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Save & Transcribe with Groq AI
+        </button>
+        
+        <button class="btn ghost" style="margin-top:10px;" onclick="window.app.startScan()">
+          Retake Pages
+        </button>
+      </div>
+    </section>
+
+    <!-- 7. HUMAN-IN-THE-LOOP CLINICAL REVIEW SCREEN (HYBRID POWER) -->
+    <section class="scr" id="review">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b id="review-title">Physician Verification</b>
+        <span class="tag" id="review-status-tag">To check</span>
+      </div>
+
+      <div class="body">
+        <!-- Patient Summary Bar -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;margin:12px 0 10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <b id="review-patient-heading" style="font-size:16px;">Patient Name</b>
+              <small id="review-camp-label" style="display:block;color:var(--mute);">Health Camp</small>
+            </div>
+            <button class="btn ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="window.app.toggleReviewDocs()">
+              📄 Form Images
+            </button>
+          </div>
+
+          <!-- Collapsible Scanned Document Previews -->
+          <div id="review-docs-box" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:10px;">
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <small style="font-weight:600;display:block;margin-bottom:4px;">Page 1 Source</small>
+                <img id="review-p1-img" style="width:100%;border-radius:8px;border:1px solid var(--line);max-height:160px;object-fit:contain;background:#f0f4f3;" alt="Page 1 preview">
+              </div>
+              <div style="flex:1;">
+                <small style="font-weight:600;display:block;margin-bottom:4px;">Page 2 Source</small>
+                <img id="review-p2-img" style="width:100%;border-radius:8px;border:1px solid var(--line);max-height:160px;object-fit:contain;background:#f0f4f3;" alt="Page 2 preview">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8-Section Category Tabs -->
+        <div class="review-tabs">
+          <button class="review-tab-btn active" id="rtab-personal" onclick="window.app.switchReviewTab('personal')">1. Personal & Vitals</button>
+          <button class="review-tab-btn" id="rtab-medical" onclick="window.app.switchReviewTab('medical')">2. Medical History</button>
+          <button class="review-tab-btn" id="rtab-family" onclick="window.app.switchReviewTab('family')">3. Family History</button>
+          <button class="review-tab-btn" id="rtab-health" onclick="window.app.switchReviewTab('health')">4. Assessment</button>
+          <button class="review-tab-btn" id="rtab-system" onclick="window.app.switchReviewTab('system')">5. Systemic Exam</button>
+          <button class="review-tab-btn" id="rtab-vision" onclick="window.app.switchReviewTab('vision')">6. Vision & Dental</button>
+          <button class="review-tab-btn" id="rtab-referral" onclick="window.app.switchReviewTab('referral')">7. Referral & Sign</button>
+        </div>
+
+        <!-- Section 1: Personal Information & Vitals -->
+        <div class="review-section active" id="rsec-personal">
+          <div class="form-grid single">
+            <div>
+              <label for="rev-name">Full Name <span class="field-badge-warn" id="badge-name" style="display:none;">Check value</span></label>
+              <input id="rev-name" placeholder="Patient Full Name">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-age">Age</label>
+              <input id="rev-age" placeholder="e.g. 21">
+            </div>
+            <div>
+              <label for="rev-gender">Gender</label>
+              <select id="rev-gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-blood-group">Blood Group</label>
+              <input id="rev-blood-group" placeholder="e.g. O+">
+            </div>
+            <div>
+              <label for="rev-dob">Date of Birth</label>
+              <input id="rev-dob" placeholder="DD/MM/YYYY">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-doc-id">Document ID</label>
+              <input id="rev-doc-id" placeholder="DOC-XXXX">
+            </div>
+            <div>
+              <label for="rev-adm-id">Admission / Roll ID</label>
+              <input id="rev-adm-id" placeholder="ADM-XXXX">
+            </div>
+          </div>
+
+          <div class="form-grid single">
+            <div>
+              <label for="rev-school">School / College Name</label>
+              <input id="rev-school" placeholder="Institution Name">
+            </div>
+            <div>
+              <label for="rev-mobile">Mobile Number</label>
+              <input id="rev-mobile" placeholder="Phone Number">
+            </div>
+            <div>
+              <label for="rev-address">Residential Address</label>
+              <input id="rev-address" placeholder="Address">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-height">Height (cm)</label>
+              <input id="rev-height" placeholder="e.g. 172">
+            </div>
+            <div>
+              <label for="rev-weight">Weight (kg)</label>
+              <input id="rev-weight" placeholder="e.g. 65">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-bp">Blood Pressure <span class="field-badge-warn" id="badge-bp" style="display:none;">Check value</span></label>
+              <input id="rev-bp" placeholder="e.g. 120/80">
+            </div>
+            <div>
+              <label for="rev-pulse">Pulse (bpm)</label>
+              <input id="rev-pulse" placeholder="e.g. 78">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-rbs">RBS (mg/dL)</label>
+              <input id="rev-rbs" placeholder="e.g. 95">
+            </div>
+            <div>
+              <label for="rev-waist">Waist (cm)</label>
+              <input id="rev-waist" placeholder="e.g. 76">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Medical History -->
+        <div class="review-section" id="rsec-medical">
+          <label for="rev-allergies">Known Allergies <span class="field-badge-warn" id="badge-allergies" style="display:none;">Check value</span></label>
+          <input id="rev-allergies" placeholder="No known allergies / details">
+
+          <label for="rev-surgery">Previous Surgery / Hospitalization</label>
+          <input id="rev-surgery" placeholder="e.g. Appendectomy at age 12">
+
+          <label for="rev-medications">Current / Previous Medications</label>
+          <input id="rev-medications" placeholder="Medications details">
+
+          <label for="rev-abdominal">Abdominal Pain / Constipation / Indigestion</label>
+          <input id="rev-abdominal" placeholder="None / details">
+
+          <label for="rev-ent">Skin / Hair / ENT Problems</label>
+          <input id="rev-ent" placeholder="None / details">
+
+          <label for="rev-activity">Physical Activity / Exercise</label>
+          <input id="rev-activity" placeholder="Daily walking, gym, etc.">
+
+          <label for="rev-social">Social History (Alcohol / Smoking)</label>
+          <input id="rev-social" placeholder="Non-smoker, occasional, etc.">
+        </div>
+
+        <!-- Section 3: Family History -->
+        <div class="review-section" id="rsec-family">
+          <label for="rev-fam-diabetes">Family: Diabetes</label>
+          <input id="rev-fam-diabetes" placeholder="e.g. Yes (Father)">
+
+          <label for="rev-fam-hypertension">Family: Hypertension</label>
+          <input id="rev-fam-hypertension" placeholder="e.g. Yes (Mother)">
+
+          <label for="rev-fam-heart">Family: Heart Disease</label>
+          <input id="rev-fam-heart" placeholder="None / details">
+
+          <label for="rev-fam-thyroid">Family: Thyroid</label>
+          <input id="rev-fam-thyroid" placeholder="None / details">
+
+          <label for="rev-fam-asthma">Family: Asthma</label>
+          <input id="rev-fam-asthma" placeholder="None / details">
+
+          <label for="rev-fam-other">Family: Other Conditions</label>
+          <input id="rev-fam-other" placeholder="None">
+        </div>
+
+        <!-- Section 4: Health Assessment -->
+        <div class="review-section" id="rsec-health">
+          <div class="form-grid">
+            <div>
+              <label for="rev-pallor">Pallor</label>
+              <input id="rev-pallor" placeholder="Absent / Present">
+            </div>
+            <div>
+              <label for="rev-icterus">Icterus</label>
+              <input id="rev-icterus" placeholder="Absent / Present">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-cyanosis">Cyanosis</label>
+              <input id="rev-cyanosis" placeholder="Absent">
+            </div>
+            <div>
+              <label for="rev-edema">Edema</label>
+              <input id="rev-edema" placeholder="Absent">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="rev-clubbing">Clubbing</label>
+              <input id="rev-clubbing" placeholder="Absent">
+            </div>
+            <div>
+              <label for="rev-lymph">Lymphadenopathy</label>
+              <input id="rev-lymph" placeholder="Absent">
+            </div>
+          </div>
+
+          <label for="rev-ecg">ECG Findings</label>
+          <input id="rev-ecg" placeholder="Normal sinus rhythm">
+
+          <label for="rev-echo">Echo Findings</label>
+          <input id="rev-echo" placeholder="Normal">
+        </div>
+
+        <!-- Section 5: Systemic Examination -->
+        <div class="review-section" id="rsec-system">
+          <label for="rev-sys-rs">Respiratory System (RS)</label>
+          <input id="rev-sys-rs" placeholder="Normal vesicular breath sounds">
+
+          <label for="rev-sys-cvs">Cardiovascular System (CVS)</label>
+          <input id="rev-sys-cvs" placeholder="S1 S2 heard, no murmurs">
+
+          <label for="rev-sys-abdomen">Abdomen Examination</label>
+          <input id="rev-sys-abdomen" placeholder="Soft, non-tender, no organomegaly">
+
+          <label for="rev-sys-cns">Central Nervous System (CNS)</label>
+          <input id="rev-sys-cns" placeholder="Conscious, oriented, normal">
+
+          <label for="rev-sys-ent">Ear, Nose, Throat</label>
+          <input id="rev-sys-ent" placeholder="Normal">
+
+          <label for="rev-sys-skin">Skin & Hair</label>
+          <input id="rev-sys-skin" placeholder="Normal">
+        </div>
+
+        <!-- Section 6: Vision & Dental -->
+        <div class="review-section" id="rsec-vision">
+          <div class="form-grid">
+            <div>
+              <label for="rev-va-right">Distant Vision Right</label>
+              <input id="rev-va-right" placeholder="e.g. 6/6">
+            </div>
+            <div>
+              <label for="rev-va-left">Distant Vision Left</label>
+              <input id="rev-va-left" placeholder="e.g. 6/6">
+            </div>
+          </div>
+
+          <label for="rev-vision-category">Vision Category</label>
+          <input id="rev-vision-category" placeholder="Unaided / With Glasses">
+
+          <label for="rev-dental-status">Dental Examination</label>
+          <input id="rev-dental-status" placeholder="Normal / Caries noted">
+
+          <label for="rev-dental-advice">Dental Advice / Recommendations</label>
+          <input id="rev-dental-advice" placeholder="Brushing twice daily, Dental OPD">
+        </div>
+
+        <!-- Section 7: Referral & Sign -->
+        <div class="review-section" id="rsec-referral">
+          <label for="rev-referral">Specialist Referred To</label>
+          <input id="rev-referral" placeholder="None / Dental / Ophthalmology OPD">
+
+          <label for="rev-doc-sign">Doctor Signature Present</label>
+          <input id="rev-doc-sign" placeholder="Present / Signed">
+
+          <label for="rev-doctor-notes">Physician Clinical Notes</label>
+          <textarea id="rev-doctor-notes" rows="3" placeholder="Verified and endorsed by attending camp doctor…"></textarea>
+        </div>
+
+        <!-- Fixed Action Button -->
+        <div style="margin-top:20px;padding-bottom:10px;">
+          <button class="btn" id="approve-btn" onclick="window.app.approveAndSaveRecord()">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M5 12l5 5L20 7"/></svg>
+            Approve & Save to Database
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. ALL PATIENT RECORDS SCREEN -->
+    <section class="scr" id="records">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Patient Intake Records</b>
+        <button class="btn ghost" style="width:auto;padding:6px 10px;font-size:12px;" onclick="window.app.exportExcel()">
+          Excel
+        </button>
+      </div>
+
+      <div class="body">
+        <div style="margin:12px 0 8px;">
+          <input id="records-search" type="search" placeholder="Search patient name, ID, or camp…" oninput="window.app.filterRecords()">
+        </div>
+
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;">
+          <button class="review-tab-btn active" id="rf-all" onclick="window.app.setRecordsFilter('all')">All Records</button>
+          <button class="review-tab-btn" id="rf-warn" onclick="window.app.setRecordsFilter('needs_review')">To check</button>
+          <button class="review-tab-btn" id="rf-ok" onclick="window.app.setRecordsFilter('reviewed')">Approved</button>
+        </div>
+
+        <div id="records-full-list" style="margin-top:4px;">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="nav">
+        <button id="nav-btn-home-2" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+          Home
+        </button>
+        <button class="on" id="nav-btn-records-2" onclick="window.app.go('records')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Records
+        </button>
+        <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+        </button>
+        <button id="nav-btn-export-2" onclick="window.app.go('export')">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          Excel
+        </button>
+        <button id="nav-btn-settings-2" onclick="window.app.go('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </section>
+
+    <!-- 9. EXCEL EXPORT SCREEN -->
+    <section class="scr" id="export">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Clinic Excel Export</b>
+      </div>
+
+      <div class="body">
+        <h2 style="font-size:22px;margin:14px 0 6px;">Clinic Excel Spreadsheet & Export</h2>
+        <p style="color:var(--mute);margin-bottom:14px;">View live clinical data sheets or download comprehensive Microsoft Excel (.xlsx) workbooks containing all 8 form sections, vitals, medical history, and clinical reviews.</p>
+
+        <!-- Dynamic Download Confirmation Banner -->
+        <div id="excel-download-banner" style="display:none;background:#ddf1ea;border:1.5px solid #0E7C6B;border-radius:14px;padding:12px 14px;margin:10px 0 14px;"></div>
+
+        <label for="export-camp-select">Filter by Health Camp</label>
+        <select id="export-camp-select" onchange="window.app.onExportFilterChanged()">
+          <option value="">All Health Camps (All Records)</option>
+        </select>
+
+        <div style="display:flex;align-items:center;gap:10px;margin:12px 0 14px;">
+          <input type="checkbox" id="export-only-reviewed" style="width:auto;" onchange="window.app.onExportFilterChanged()">
+          <label for="export-only-reviewed" style="margin:0;font-size:13.5px;cursor:pointer;">
+            Export only physician-approved records
+          </label>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <button class="btn amber" style="flex:1;" onclick="window.app.executeExport()">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+            Download .xlsx Workbook
+          </button>
+        </div>
+
+        <!-- Live Spreadsheet Search Bar -->
+        <div style="margin-bottom:8px;">
+          <input id="excel-search-input" placeholder="🔍 Search patient name, ID, BP, or details in sheet…" oninput="window.app.filterExcelPreview()" style="font-size:13px;padding:9px 12px;margin:0;border-radius:10px;">
+        </div>
+
+        <!-- Interactive In-App Excel Sheet Viewer -->
+        <div class="excel-window" id="excel-window-el">
+          <div class="excel-ribbon">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff;"><rect x="3" y="3" width="18" height="18" rx="3" fill="#0E7C6B"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="2"/></svg>
+              <span id="excel-ribbon-filename">clinic_records_all.xlsx (Live Viewer)</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn ghost" id="excel-fs-btn" style="width:auto;padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.2);color:#fff;" onclick="window.app.toggleExcelFullscreen()">
+                ⛶ Fullscreen
+              </button>
+              <button class="btn ghost" style="width:auto;padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.25);color:#fff;" onclick="window.app.executeExport()">
+                ⬇ Save .xlsx
+              </button>
+            </div>
+          </div>
+
+          <div class="excel-grid-container" id="excel-grid-container">
+            <!-- Rendered by window.app.renderExcelPreview() -->
+          </div>
+
+          <div class="excel-sheet-tabs">
+            <button class="excel-sheet-tab active" id="extab-records" onclick="window.app.switchExcelSheetTab('records')">
+              📋 Patient Records (<span id="excel-records-count">0</span>)
+            </button>
+            <button class="excel-sheet-tab" id="extab-camps" onclick="window.app.switchExcelSheetTab('camps')">
+              📊 Camp Summary (<span id="excel-camps-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <b>Spreadsheet Security Safeguard:</b> Native Excel (.xlsx) formatting ensures all text cells and medical entries are treated strictly as string literals, preventing formula injection. Includes styled teal headers, frozen panes, camp overview sheet, and auto-column widths for all 95 clinical details.
+        </div>
+
+        <div class="sec" style="margin-top:24px;">
+          <h3>Camps Individual Export</h3>
+        </div>
+        <div id="export-camps-list">
+          <!-- Populated from state -->
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="nav">
+        <button id="nav-btn-home-3" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+          Home
+        </button>
+        <button id="nav-btn-records-3" onclick="window.app.go('records')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Records
+        </button>
+        <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+        </button>
+        <button class="on" id="nav-btn-export-3" onclick="window.app.go('export')">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          Excel
+        </button>
+        <button id="nav-btn-settings-3" onclick="window.app.go('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </section>
+
+    <!-- 10. SYSTEM SETTINGS & DEMO CONTROLS -->
+    <section class="scr" id="settings">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Settings & Status</b>
+      </div>
+
+      <div class="body">
+        <h2 style="font-size:22px;margin:14px 0 6px;">System Diagnostics</h2>
+        <p style="color:var(--mute);margin-bottom:14px;">Operational parameters, AI engine status, and synthetic demo reset.</p>
+
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
+          <small style="color:var(--mute);text-transform:uppercase;font-size:11px;font-weight:600;">Vision AI Engine</small>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <b id="settings-ai-provider">Groq Vision (qwen/qwen3.8-27b)</b>
+            <span class="tag" id="settings-ai-status">Connected</span>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
+          <small style="color:var(--mute);text-transform:uppercase;font-size:11px;font-weight:600;">Database Storage</small>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <b>SQLite (clinic_records.db)</b>
+            <span class="tag">Active</span>
+          </div>
+          <small style="display:block;margin-top:6px;color:var(--mute);">Zero fake metrics — all progress rings and counts computed directly from database records.</small>
+        </div>
+
+        <div class="sec" style="margin-top:20px;">
+          <h3>Synthetic Demo Controls</h3>
+        </div>
+
+        <div class="info-card">
+          Demonstration mode seeds realistic, synthetic clinic records for Chennai health camps. No real patient data is stored.
+        </div>
+
+        <button class="btn ghost" style="color:var(--err);border:1.5px solid #F8D7DA;" onclick="window.app.resetDemoData()">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Reset to Clean Demo Records
+        </button>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="nav">
+        <button id="nav-btn-home-4" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+          Home
+        </button>
+        <button id="nav-btn-records-4" onclick="window.app.go('records')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Records
+        </button>
+        <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+        </button>
+        <button id="nav-btn-export-4" onclick="window.app.go('export')">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          Excel
+        </button>
+        <button class="on" id="nav-btn-settings-4" onclick="window.app.go('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </section>
+
+    <!-- NEW CAMP MODAL OVERLAY -->
+    <div class="ov" id="ov">
+      <div>
+        <h2 style="font-size:22px;">Create New Health Camp</h2>
+        <p style="color:var(--mute);font-size:13px;margin-bottom:8px;">Set up a new screening camp quota in SQLite.</p>
+        
+        <label for="cn">Health Camp Name</label>
+        <input id="cn" placeholder="e.g. Govt Higher Secondary School, Adyar">
+        
+        <label for="ci">Target Quota (Expected Records)</label>
+        <input id="ci" type="number" value="120" min="1">
+
+        <label for="cd">Date Label</label>
+        <input id="cd" placeholder="e.g. 24 Oct / Today" value="Today">
+        
+        <p class="err" id="cerr"></p>
+        
+        <button class="btn" onclick="window.app.saveNewCamp()">Create Camp</button>
+        <button class="btn ghost" style="margin-top:10px;" onclick="window.app.closeNewCampModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <!-- Main Application Logic Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

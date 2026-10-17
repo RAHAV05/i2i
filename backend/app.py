@@ -25,10 +25,16 @@ if PROJECT_ROOT not in sys.path:
 # Load environment variables from .env file if present
 load_dotenv(os.path.join(CURRENT_DIR, ".env"))
 
-from backend import database
-from backend.services.ai_service import AIService
-from backend.services.groq_service import GroqService
-from backend.services.record_service import RecordService
+try:
+    from backend import database
+    from backend.services.ai_service import AIService
+    from backend.services.groq_service import GroqService
+    from backend.services.record_service import RecordService
+except ImportError:
+    import database
+    from services.ai_service import AIService
+    from services.groq_service import GroqService
+    from services.record_service import RecordService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +47,17 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per image
 
 def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
     """Application factory for Flask API."""
-    frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+    candidate_dirs = [
+        os.path.abspath(os.path.join(CURRENT_DIR, "frontend")),
+        os.path.abspath(os.path.join(CURRENT_DIR, "..", "frontend")),
+        os.path.abspath(os.path.join(PROJECT_ROOT, "frontend")),
+    ]
+    frontend_dir = CURRENT_DIR
+    for d in candidate_dirs:
+        if os.path.exists(os.path.join(d, "index.html")):
+            frontend_dir = d
+            break
+
     app = Flask(__name__, static_folder=frontend_dir, static_url_path="")
     
     # Configure CORS for local development
@@ -267,8 +283,10 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
     return app
 
+# Top-level Flask instance required by Vercel and WSGI runtimes
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     port = int(os.getenv("PORT", 5001))
     logger.info("Starting Doc Scanner Clinic Demo API on port %d...", port)
     app.run(host="0.0.0.0", port=port, debug=False)

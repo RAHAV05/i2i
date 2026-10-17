@@ -13,7 +13,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from backend import database
+try:
+    from backend import database
+except ImportError:
+    import database
 
 DANGEROUS_CSV_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
 

@@ -10,7 +10,10 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
-DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clinic_records.db")
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    DEFAULT_DB_PATH = "/tmp/clinic_records.db"
+else:
+    DEFAULT_DB_PATH = os.environ.get("DATABASE_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "clinic_records.db")
 
 def get_db_connection(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
     """Return a configured SQLite connection with foreign keys and Row factory."""
