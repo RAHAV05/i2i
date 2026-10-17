@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Doc Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14233A;--mute:#5E6E7E;--paper:#FBFCFC;--mist:#E6EEEC;--line:#D5E0DD;--teal:#0E7C6B;--teal2:#0A5C50;--amber:#E8A317;--amberbg:#FDF1D6;--ok:#DDF1EA;--bg:#CFDAD7;--card:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0C1513}}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);font:400 15px/1.45 Figtree,system-ui,sans-serif;color:var(--ink);display:flex;align-items:center;justify-content:center}
+h1,h2,h3,.d{font-family:'Bricolage Grotesque',Figtree,sans-serif;letter-spacing:-.02em}
+#phone{width:100%;max-width:400px;height:100%;max-height:860px;background:var(--paper);position:relative;overflow:hidden;display:flex;flex-direction:column}
+@media(min-width:500px){#phone{border-radius:40px;box-shadow:0 30px 70px rgba(20,35,58,.3);height:min(860px,96vh)}}
+.scr{position:absolute;inset:0;display:none;flex-direction:column;background:var(--paper)}
+.scr.on{display:flex;animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateX(14px)}}
+.body{flex:1;overflow-y:auto;padding:0 20px 24px}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.btn{width:100%;padding:15px;border-radius:14px;background:var(--teal);color:#fff;font-weight:600;font-size:16px}
+.btn:active{background:var(--teal2)}.btn.ghost{background:var(--mist);color:var(--ink)}
+/* splash */
+#splash{background:var(--ink);color:#fff;align-items:center;justify-content:center;gap:18px}
+.mark{width:84px;height:104px;border:3px solid #fff;border-radius:10px;position:relative;overflow:hidden}
+.mark:before{content:"";position:absolute;inset:14px 12px auto;height:50px;background:repeating-linear-gradient(#fff3 0 3px,transparent 3px 11px)}
+.mark i{position:absolute;left:0;right:0;height:3px;background:var(--amber);box-shadow:0 0 14px var(--amber);animation:sw 1.4s ease-in-out infinite alternate}
+@keyframes sw{from{top:6px}to{top:92px}}
+#splash h1{font-size:30px}#splash p{color:#9DB2C6;font-size:14px}
+.bar{width:140px;height:4px;background:#ffffff22;border-radius:4px;overflow:hidden}.bar b{display:block;height:100%;width:0;background:var(--amber);animation:ld 2.2s forwards}
+@keyframes ld{to{width:100%}}
+/* landing */
+.hero{background:var(--ink);color:#fff;padding:54px 24px 30px;border-radius:0 0 34px 34px;position:relative;overflow:hidden}
+.hero h1{font-size:36px;line-height:1.05;margin:18px 0 10px}.hero p{color:#B7C7D8}
+.pg{position:absolute;right:-18px;top:34px;width:120px;height:150px;background:#fff;border-radius:10px;transform:rotate(9deg);opacity:.95;padding:14px 12px;background-image:repeating-linear-gradient(transparent 0 11px,#cfd9e2 11px 12px)}
+.pg+.pg{right:34px;top:70px;transform:rotate(-7deg);opacity:.5}
+.feat{display:grid;gap:14px;padding:26px 24px 8px}
+.feat div{display:flex;gap:14px;align-items:flex-start}.feat b{font-weight:600;display:block}.feat span{color:var(--mute);font-size:14px}
+.ic{flex:none;width:40px;height:40px;border-radius:12px;background:var(--ok);display:grid;place-items:center;color:var(--teal)}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* login */
+.top{display:flex;align-items:center;gap:8px;padding:18px 16px 6px}
+.back{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+label{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
+input,select{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font:inherit;color:var(--ink)}
+.err{color:#B3261E;font-size:13px;min-height:18px;margin-top:8px}
+/* dashboard */
+.head{display:flex;justify-content:space-between;align-items:center;padding:22px 20px 10px}
+.head h2{font-size:24px}.head small{color:var(--mute);display:block}
+.av{width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:600}
+.active{background:var(--ink);color:#fff;border-radius:24px;padding:20px;display:flex;gap:18px;align-items:center;margin-top:6px}
+.ring{--p:0;width:96px;height:96px;border-radius:50%;flex:none;background:conic-gradient(var(--amber) calc(var(--p)*1%),#ffffff22 0);display:grid;place-items:center}
+.ring div{width:76px;height:76px;border-radius:50%;background:var(--ink);display:grid;place-items:center;text-align:center;line-height:1.1}
+.ring b{font:800 22px 'Bricolage Grotesque'}.ring span{font-size:11px;color:#9DB2C6}
+.active h3{font-size:19px}.active p{color:#B7C7D8;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px}
+.st{background:var(--mist);border-radius:16px;padding:12px}.st b{font:800 26px 'Bricolage Grotesque';display:block}.st span{font-size:12px;color:var(--mute)}
+.st.warn{background:var(--amberbg)}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px}.sec h3{font-size:18px}
+.sec button{color:var(--teal);font-weight:600;font-size:14px}
+.camp{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;width:100%;text-align:left;display:block}
+.camp.sel{border-color:var(--teal);background:#F2FAF7}
+.camp .r{display:flex;justify-content:space-between;gap:8px}.camp b{font-weight:600}.camp small{color:var(--mute)}
+.pb{height:6px;background:var(--mist);border-radius:6px;margin-top:10px;overflow:hidden}.pb i{display:block;height:100%;background:var(--teal);border-radius:6px}
+.rec{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.rec .a{width:38px;height:38px;border-radius:12px;background:var(--mist);display:grid;place-items:center;font-weight:600;flex:none}
+.rec div{flex:1;min-width:0}.rec small{color:var(--mute)}
+.tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--ok);color:var(--teal2);white-space:nowrap}
+.tag.w{background:var(--amberbg);color:#8A5A00}.tag.r{background:var(--mist);color:var(--mute)}
+.nav{display:flex;justify-content:space-around;align-items:flex-end;padding:8px 10px 14px;border-top:1px solid var(--line);background:var(--paper)}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mute);padding:6px 14px}
+.nav button.on{color:var(--teal);font-weight:600}
+.nav .go{width:62px;height:62px;border-radius:20px;background:var(--teal);color:#fff;margin-top:-26px;justify-content:center;box-shadow:0 8px 20px #0E7C6B66;padding:0}
+/* scanner */
+#scan{background:#0B1420;color:#fff}
+.vf{flex:1;margin:6px 20px;border-radius:26px;background:radial-gradient(circle at 50% 40%,#1d2d42,#0B1420);position:relative;overflow:hidden;display:grid;place-items:center}
+.sheet{width:68%;aspect-ratio:3/4;background:#fff;border-radius:6px;transform:rotate(-2deg);background-image:repeating-linear-gradient(transparent 0 17px,#c7d3de 17px 18px);padding:14px;color:#9aa8b6;font-size:11px;position:relative}
+.sheet:before{content:attr(data-t);display:block;font:700 13px 'Bricolage Grotesque';color:#44566a;margin-bottom:6px}
+.cr{position:absolute;width:34px;height:34px;border:4px solid var(--amber)}
+.cr.a{left:14%;top:12%;border-right:0;border-bottom:0;border-radius:10px 0 0 0}.cr.b{right:14%;top:12%;border-left:0;border-bottom:0;border-radius:0 10px 0 0}
+.cr.c{left:14%;bottom:12%;border-right:0;border-top:0;border-radius:0 0 0 10px}.cr.d{right:14%;bottom:12%;border-left:0;border-top:0;border-radius:0 0 10px 0}
+.ln{position:absolute;left:14%;right:14%;height:3px;background:var(--amber);box-shadow:0 0 18px var(--amber);animation:sw2 2s ease-in-out infinite alternate}
+@keyframes sw2{from{top:14%}to{top:84%}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}.flash.f{animation:fl .4s}
+@keyframes fl{from{opacity:.9}}
+.steps{display:flex;gap:8px;justify-content:center;margin:6px 0}.steps i{height:5px;width:52px;border-radius:5px;background:#ffffff33}.steps i.on{background:var(--amber)}
+.ctl{display:flex;justify-content:center;align-items:center;gap:34px;padding:14px 0 26px}
+.shut{width:76px;height:76px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center}.shut i{width:58px;height:58px;border-radius:50%;background:#fff;display:block}.shut:active i{transform:scale(.9)}
+.th{width:44px;height:58px;border-radius:8px;background:#fff3;border:2px dashed #ffffff55}.th.f{background:#fff;border:2px solid var(--amber)}
+.hint{text-align:center;color:#9DB2C6;font-size:14px}
+/* pair */
+.pair{display:flex;gap:12px;margin:8px 0 6px}.pair .sheet{width:50%;transform:none;font-size:10px}
+.toast{position:absolute;left:20px;right:20px;bottom:90px;background:var(--ink);color:#fff;padding:13px 16px;border-radius:14px;transform:translateY(30px);opacity:0;transition:.3s;pointer-events:none;z-index:9}.toast.on{transform:none;opacity:1}
+.ov{position:absolute;inset:0;background:#14233A88;display:none;align-items:flex-end;z-index:8}.ov.on{display:flex}
+.ov>div{background:var(--paper);width:100%;border-radius:26px 26px 0 0;padding:22px 20px 26px;animation:in .25s}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<div id="phone">
+
+<section class="scr on" id="splash"><div class="mark"><i></i></div><h1 class="d">Doc Scanner</h1><p>Getting your camps ready</p><div class="bar"><b></b></div></section>
+
+<section class="scr" id="landing">
+ <div class="hero"><div class="pg"></div><div class="pg"></div><div class="mark" style="width:44px;height:54px;border-width:2px"><i></i></div>
+ <h1>Paper forms in.<br>Clean records out.</h1><p>Scan the two pages of a health camp form and let the doctor check the rest.</p></div>
+ <div class="feat">
+  <div><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg></span><p><b>Scan both pages</b><span>Page 1 and Page 2 are paired for you.</span></p></div>
+  <div><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Check only what is unclear</b><span>Unsure fields are flagged for the doctor.</span></p></div>
+  <div><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg></span><p><b>Export to Excel</b><span>Every camp, one tidy sheet.</span></p></div>
+ </div>
+ <div style="flex:1"></div>
+ <div style="padding:0 20px 24px"><button class="btn" onclick="go('login')">Sign in</button></div>
+</section>
+
+<section class="scr" id="login">
+ <div class="top"><button class="back" aria-label="Back" onclick="go('landing')"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button></div>
+ <div class="body"><h1 style="font-size:32px;margin-top:8px">Welcome back</h1><p style="color:var(--mute)">Sign in with your work email.</p>
+ <label for="em">Email</label><input id="em" type="email" placeholder="doctor@hospital.in" autocomplete="email">
+ <label for="pw">Password</label><input id="pw" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+ <p class="err" id="lerr"></p><button class="btn" style="margin-top:8px" onclick="login()">Sign in</button>
+ <p style="text-align:center;margin-top:16px;color:var(--mute);font-size:14px">Forgot your password? Ask your camp admin.</p></div>
+</section>
+
+<section class="scr" id="home">
+ <div class="head"><div><small>Good morning</small><h2 id="who">Dr. Priya</h2></div><div class="av">P</div></div>
+ <div class="body" id="hb"></div>
+ <div class="nav"><button class="on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Home</button>
+ <button class="go" aria-label="Scan a record" onclick="startScan()"><svg viewBox="0 0 24 24" style="width:28px;height:28px"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg></button>
+ <button onclick="go('landing')"><svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>Log out</button></div>
+</section>
+
+<section class="scr" id="scan">
+ <div class="top"><button class="back" aria-label="Close" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><b id="stl" style="font-size:17px">Scan Page 1</b></div>
+ <div class="steps"><i id="s1" class="on"></i><i id="s2"></i><i id="s3"></i></div>
+ <div class="vf"><div class="sheet" id="sh" data-t="Health camp form · Page 1">Name ______ Age ____<br>Height ____ Weight ____</div><i class="cr a"></i><i class="cr b"></i><i class="cr c"></i><i class="cr d"></i><i class="ln"></i><div class="flash" id="fl"></div></div>
+ <p class="hint" id="hnt">Fit the whole page inside the corners</p>
+ <div class="ctl"><div class="th" id="t1"></div><button class="shut" aria-label="Capture page" onclick="snap()"><i></i></button><div class="th" id="t2"></div></div>
+</section>
+
+<section class="scr" id="pairs">
+ <div class="top"><button class="back" aria-label="Back" onclick="startScan()"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><b style="font-size:17px">Check the pair</b></div>
+ <div class="body"><p style="color:var(--mute)">Both pages should belong to the same person.</p>
+ <div class="pair"><div class="sheet" data-t="Page 1">Personal details</div><div class="sheet" data-t="Page 2">Exam and referral</div></div>
+ <label for="pn">Person's name</label><input id="pn" placeholder="e.g. Karthik R">
+ <label for="pc">Camp</label><select id="pc"></select>
+ <p class="err" id="perr"></p><button class="btn" style="margin-top:6px" onclick="saveRec()">Save and read both pages</button>
+ <button class="btn ghost" style="margin-top:10px" onclick="startScan()">Scan again</button></div>
+</section>
+
+<div class="ov" id="ov"><div><h2 style="font-size:22px">New camp</h2>
+ <label for="cn">Camp name</label><input id="cn" placeholder="e.g. Govt School, Ambattur">
+ <label for="ci">Expected records</label><input id="ci" type="number" value="150" min="1">
+ <p class="err" id="cerr"></p><button class="btn" onclick="addCamp()">Create camp</button><button class="btn ghost" style="margin-top:10px" onclick="ov.classList.remove('on')">Cancel</button></div></div>
+<div class="toast" id="toast"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id),ov=$('ov');
+let camps=[{n:'St. Mary\'s School, Adyar',d:'16 Oct',tot:120,done:78,rev:9},{n:'Velachery Community Hall',d:'12 Oct',tot:90,done:90,rev:0},{n:'Anna Nagar Sports Club',d:'20 Oct',tot:60,done:0,rev:0}];
+let recs=[{n:'Meena S',c:0,s:'a',t:'8 min ago'},{n:'Arjun K',c:0,s:'w',t:'21 min ago'},{n:'Divya P',c:0,s:'a',t:'34 min ago'}];
+let sel=0,page=0,pages=[];
+function go(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id===id));if(id==='home')render()}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600)}
+setTimeout(()=>go('landing'),2400);
+function login(){const e=$('em').value.trim(),p=$('pw').value;
+ if(!/^\S+@\S+\.\S+$/.test(e))return $('lerr').textContent='Enter a valid email address.';
+ if(p.length<6)return $('lerr').textContent='Password needs at least 6 characters.';
+ $('lerr').textContent='';$('who').textContent='Dr. '+e.split('@')[0].replace(/^./,c=>c.toUpperCase());go('home')}
+const tag={a:['Approved',''],w:['To check','w'],r:['Reading…','r']};
+function render(){
+ const A=camps[sel],pct=A.tot?Math.round(A.done/A.tot*100):0,done=camps.reduce((a,c)=>a+c.done,0),rev=camps.reduce((a,c)=>a+c.rev,0);
+ $('hb').innerHTML=`<div class="active"><div class="ring" style="--p:${pct}"><div><b>${pct}%</b><span>done</span></div></div><div><p>Active camp</p><h3>${A.n}</h3><p>${A.done} of ${A.tot} forms · ${A.d}</p></div></div>
+ <div class="stats"><div class="st"><b>${done}</b><span>Scanned</span></div><div class="st warn"><b>${rev}</b><span>To check</span></div><div class="st"><b>${camps.length}</b><span>Camps</span></div></div>
+ <div class="sec"><h3>Your camps</h3><button onclick="ov.classList.add('on')">+ New camp</button></div>
+ ${camps.map((c,i)=>`<button class="camp ${i==sel?'sel':''}" onclick="sel=${i};render()"><div class="r"><b>${c.n}</b><small>${c.d}</small></div><small>${c.done} of ${c.tot} scanned${c.rev?` · ${c.rev} to check`:''}</small><div class="pb"><i style="width:${c.tot?c.done/c.tot*100:0}%"></i></div></button>`).join('')}
+ <div class="sec"><h3>Recent records</h3></div>
+ ${recs.slice(0,6).map(r=>`<div class="rec"><span class="a">${r.n[0]}</span><div><b>${r.n}</b><br><small>${camps[r.c].n} · ${r.t}</small></div><span class="tag ${tag[r.s][1]}">${tag[r.s][0]}</span></div>`).join('')}`}
+function addCamp(){const n=$('cn').value.trim();if(!n)return $('cerr').textContent='Give the camp a name.';
+ camps.unshift({n,d:'Today',tot:+$('ci').value||100,done:0,rev:0});sel=0;$('cn').value='';$('cerr').textContent='';ov.classList.remove('on');render();toast('Camp created')}
+function startScan(){page=0;pages=[];$('t1').className='th';$('t2').className='th';upd();go('scan')}
+function upd(){$('stl').textContent='Scan Page '+(page+1);$('sh').dataset.t='Health camp form · Page '+(page+1);
+ $('s1').className=page>=0?'on':'';$('s2').className=page>=1?'on':'';$('hnt').textContent=page?'Now the back side, Page 2':'Fit the whole page inside the corners'}
+function snap(){const f=$('fl');f.classList.remove('f');void f.offsetWidth;f.classList.add('f');
+ $('t'+(page+1)).className='th f';pages.push(1);
+ setTimeout(()=>{if(page===0){page=1;upd()}else{$('s3').className='on';$('pc').innerHTML=camps.map((c,i)=>`<option value="${i}" ${i==sel?'selected':''}>${c.n}</option>`).join('');$('pn').value='';go('pairs')}},450)}
+function saveRec(){const n=$('pn').value.trim();if(!n)return $('perr').textContent="Add the person's name so you can find them later.";
+ $('perr').textContent='';const c=+$('pc').value,warn=Math.random()<.5;
+ camps[c].done++;if(warn)camps[c].rev++;recs.unshift({n,c,s:'r',t:'just now'});sel=c;go('home');toast('Saved. Reading both pages…');
+ setTimeout(()=>{recs[0].s=warn?'w':'a';if($('home').classList.contains('on'))render()},2500)}
+</script></body></html>
