@@ -86,12 +86,20 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
     # --- Static Frontend Routes ---
     @app.route("/")
+    @app.route("/app.py")
+    @app.route("/backend/app.py")
+    @app.route("/api/index")
     def index():
         return send_from_directory(frontend_dir, "index.html")
 
     @app.route("/<path:filename>")
     def static_files(filename):
-        return send_from_directory(frontend_dir, filename)
+        if filename in ("app.py", "backend/app.py", "index.py", "api/index"):
+            return send_from_directory(frontend_dir, "index.html")
+        file_path = os.path.join(frontend_dir, filename)
+        if os.path.exists(file_path) and not os.path.isdir(file_path):
+            return send_from_directory(frontend_dir, filename)
+        return send_from_directory(frontend_dir, "index.html")
 
     # --- API Status & Metrics ---
     @app.route("/api/health", methods=["GET"])
