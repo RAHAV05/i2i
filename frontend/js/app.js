@@ -8,6 +8,7 @@ import { DocumentScanner } from './scanner.js';
 
 // DOM Selector Utility
 const $ = id => document.getElementById(id);
+window.$ = $;
 
 // Application State
 const state = {
@@ -348,10 +349,28 @@ export function closeScan() {
   go('home');
 }
 
+export function uploadPhoto() {
+  const input = $('camera-file-input');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
 export async function flipCamera() {
   const sc = getScannerInstance();
-  await sc.switchCamera();
-  toast('Flipping camera…');
+  try {
+    const nextMode = sc.facingMode === 'environment' ? 'front' : 'back';
+    toast(`Switching to ${nextMode} camera…`);
+    await sc.switchCamera();
+    const video = $('camera-video');
+    const sheet = $('sh');
+    if (video) video.style.display = 'block';
+    if (sheet) sheet.style.display = 'none';
+  } catch (err) {
+    console.warn('Switch camera error:', err);
+    toast(`Camera flip: ${err.message || 'unavailable on this device'}`, true);
+  }
 }
 
 export async function captureCurrentPage() {
@@ -1343,6 +1362,7 @@ window.app = {
   startScan,
   closeScan,
   flipCamera,
+  uploadPhoto,
   captureCurrentPage,
   onFileUploaded,
   loadDemoSamples,

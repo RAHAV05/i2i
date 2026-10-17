@@ -643,6 +643,8 @@ input:focus, select:focus, textarea:focus {
 #scan {
   background: #0B1420;
   color: #fff;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #scan .top {
@@ -658,6 +660,8 @@ input:focus, select:focus, textarea:focus {
 
 .vf {
   flex: 1;
+  min-height: 220px;
+  max-height: 50vh;
   margin: 6px 16px;
   border-radius: 24px;
   background: radial-gradient(circle at 50% 40%, #1d2d42, #0B1420);
@@ -678,6 +682,7 @@ input:focus, select:focus, textarea:focus {
 
 .sheet {
   width: 68%;
+  max-width: 250px;
   aspect-ratio: 3/4;
   background: #fff;
   border-radius: 6px;
@@ -819,6 +824,43 @@ input:focus, select:focus, textarea:focus {
   font-size: 13.5px;
   padding: 0 16px;
 }
+
+.scan-utils-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 22px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.scan-utils-bar .btn.ghost {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  padding: 9px 13px;
+  font-size: 12.5px;
+  border-radius: 12px;
+  width: auto;
+  min-height: 40px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
+.scan-utils-bar .btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.38);
+  transform: translateY(-1px);
+}
+
+.scan-utils-bar .btn.ghost:active {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(1px) scale(0.98);
+}
+
 
 /* Pair Verification */
 .pair {

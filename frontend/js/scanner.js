@@ -68,9 +68,7 @@ export class DocumentScanner {
 
   async switchCamera() {
     this.facingMode = (this.facingMode === 'environment') ? 'user' : 'environment';
-    if (this.isCameraActive) {
-      await this.startCamera();
-    }
+    await this.startCamera();
   }
 
   async captureCurrentFrame() {
@@ -222,6 +220,14 @@ export class DocumentScanner {
     this.setPageImage(0, opt1, URL.createObjectURL(opt1), p1Name);
     this.setPageImage(1, opt2, URL.createObjectURL(opt2), p2Name);
     return { p1Name, p2Name };
+  }
+
+  async loadSyntheticSample(type = 'filled') {
+    const p1 = await this.generateSyntheticSample(1);
+    const p2 = await this.generateSyntheticSample(2);
+    this.setPageImage(0, p1.blob, p1.url, 'sample_intake_page_1.png');
+    this.setPageImage(1, p2.blob, p2.url, 'sample_intake_page_2.png');
+    return { p1, p2 };
   }
 
   /**

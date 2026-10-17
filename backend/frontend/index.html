@@ -244,18 +244,18 @@
       </div>
 
       <!-- Quick Action Utilities -->
-      <div style="display:flex;justify-content:center;gap:12px;padding:0 20px 18px;">
+      <div class="scan-utils-bar">
         <input type="file" id="camera-file-input" accept="image/*" style="display:none;" onchange="window.app.onFileUploaded(event)">
-        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="$('camera-file-input').click()">
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <button type="button" class="btn ghost" onclick="window.app.uploadPhoto()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
           Upload Photo
         </button>
-        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="window.app.loadDemoSamples()">
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <button type="button" class="btn ghost" onclick="window.app.loadDemoSamples()">
+          <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           Load 2-Page Sample
         </button>
-        <button class="btn ghost" style="padding:8px 12px;font-size:12.5px;width:auto;" onclick="window.app.flipCamera()">
-          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+        <button type="button" class="btn ghost" onclick="window.app.flipCamera()">
+          <svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
           Flip
         </button>
       </div>
