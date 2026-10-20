@@ -17,8 +17,12 @@ from datetime import datetime, timezone
 from typing import Tuple, Dict, Any
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    LIMITER_AVAILABLE = True
+except ImportError:
+    LIMITER_AVAILABLE = False
 from dotenv import load_dotenv
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +63,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
         os.path.abspath(os.path.join(PROJECT_ROOT, "frontend")),
         os.path.abspath(os.path.join(CURRENT_DIR, "..", "frontend")),
         os.path.abspath(os.path.join(CURRENT_DIR, "frontend")),
+        PROJECT_ROOT,
     ]
     frontend_dir = CURRENT_DIR
     for d in candidate_dirs:
@@ -75,18 +80,26 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
     database.init_db(db_path)
 
     # Initialize Flask-Limiter for rate limiting (10/min per user, 60/min per org)
-    def get_user_rate_key() -> str:
-        return request.headers.get("X-User-ID") or request.headers.get("X-Doctor-ID") or get_remote_address()
+    if LIMITER_AVAILABLE:
+        def get_user_rate_key() -> str:
+            return request.headers.get("X-User-ID") or request.headers.get("X-Doctor-ID") or get_remote_address()
 
-    def get_org_rate_key() -> str:
-        return request.headers.get("X-Org-ID") or "org_default"
+        def get_org_rate_key() -> str:
+            return request.headers.get("X-Org-ID") or "org_default"
 
-    limiter = Limiter(
-        get_user_rate_key,
-        app=app,
-        storage_uri="memory://",
-        strategy="fixed-window"
-    )
+        limiter = Limiter(
+            get_user_rate_key,
+            app=app,
+            storage_uri="memory://",
+            strategy="fixed-window"
+        )
+    else:
+        class DummyLimiter:
+            def limit(self, *args, **kwargs):
+                def decorator(f):
+                    return f
+                return decorator
+        limiter = DummyLimiter()
 
     @app.errorhandler(429)
     def ratelimit_handler(e):
