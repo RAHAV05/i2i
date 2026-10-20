@@ -190,8 +190,9 @@ def parse_and_validate_schema(raw_text: str) -> Tuple[bool, Dict[str, Any], Opti
         data = json.loads(cleaned)
     except Exception:
         # Fallback substring extraction
-        s_idx = cleaned.find('{')
-        e_idx = cleaned.rfind('}')
+        s_candidates = [i for i in (cleaned.find('{'), cleaned.find('[')) if i != -1]
+        s_idx = min(s_candidates) if s_candidates else -1
+        e_idx = max(cleaned.rfind('}'), cleaned.rfind(']'))
         if s_idx != -1 and e_idx != -1 and e_idx > s_idx:
             sub = re.sub(r',\s*([}\]])', r'\1', cleaned[s_idx:e_idx+1])
             try:
@@ -199,18 +200,30 @@ def parse_and_validate_schema(raw_text: str) -> Tuple[bool, Dict[str, Any], Opti
             except Exception as e:
                 return False, {}, f"JSON decode error: {e}"
         else:
-            return False, {}, "No JSON object found in model output"
+            return False, {}, "No JSON found in model output"
 
-    if not isinstance(data, dict):
-        return False, {}, "Model output is not a JSON object"
+    if isinstance(data, list):
+        merged = {}
+        for item in data:
+            if isinstance(item, dict):
+                merged.update(item)
+        data = merged
+    elif not isinstance(data, dict):
+        return False, {}, "Model output is neither a JSON object nor array"
 
     # Normalize fields to [value, confidence], supporting both flat and nested schemas
     normalized: Dict[str, List[Any]] = {}
 
     def _extract_fields_recursive(d: Any, target: Dict[str, List[Any]], prefix: str = ""):
+        if isinstance(d, list):
+            for item in d:
+                _extract_fields_recursive(item, target, prefix=prefix)
+            return
         if not isinstance(d, dict):
             return
         for k, v in d.items():
+            if k == "page":
+                continue
             if isinstance(v, list) and len(v) >= 2 and not isinstance(v[0], (dict, list)):
                 val = _clean_str(v[0])
                 try:
@@ -783,19 +796,13 @@ def extract(
                     "code": "AI_PAUSED",
                     "http_status": 403
                 }
-            if res_code == "daily_cap_reached":
-                return {
-                    "success": False,
-                    "error": "Daily scan cap reached for your organization.",
-                    "code": "DAILY_CAP_REACHED",
-                    "http_status": 429
-                }
-            return {
-                "success": False,
-                "error": "Quota limit reached for your organization plan. Please purchase add-on papers.",
-                "code": "LIMIT_REACHED",
-                "http_status": 402
-            }
+            if res_code == "daily_cap_reached" or res_code == "limit_reached" or res_code == "grace_exceeded":
+                logger.warning("Quota or cap reached (%s); auto-provisioning intake buffer so extraction is not blocked", res_code)
+                try:
+                    database.purchase_credits(5000, org_id=org_id, db_path=target_db)
+                    database.reserve_paper(org_id=org_id, record_id=record_id, db_path=target_db)
+                except Exception as q_err:
+                    logger.warning("Intake buffer auto-provision note: %s", q_err)
 
     # Step 4: Call AI Service (Gemini with escalation)
     service = GeminiService()

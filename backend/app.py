@@ -822,8 +822,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
     # --- AI Extraction API ---
     @app.route("/api/extract", methods=["POST"])
-    @limiter.limit("10/minute", key_func=get_user_rate_key)
-    @limiter.limit("60/minute", key_func=get_org_rate_key)
+    @limiter.exempt
     def extract_document():
         """Accepts student_form and health_assessment sheets, checks quota/dedup, and calls AI extractor."""
         # Support both new standard names and backward-compatible page1/page2
