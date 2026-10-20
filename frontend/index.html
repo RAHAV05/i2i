@@ -3,94 +3,344 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Doc Scanner — Clinic Mobile Platform</title>
-  <meta name="description" content="Mobile document intake and AI transcription platform for healthcare camps.">
+  <title>Ink 2 Insight — Ideas to Impact</title>
+  <meta name="description" content="Ink 2 Insight — Optical Clinical Intake & Vision AI Platform for Healthcare Camps.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230E7C6B'/><path d='M7 9V6h3m6 0h3v3m0 6v3h-3M10 18H7v-3M7 12h10' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/></svg>">
-  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="stylesheet" href="css/styles.css?v=20261020_06">
+  <script>
+    // Global skip hook for initial splash (delegates directly to app module)
+    window.finishSplash = function() {
+      if (window.app && typeof window.app.finishSplash === 'function') {
+        window.app.finishSplash();
+      }
+    };
+  </script>
 </head>
 <body>
 
   <!-- Desktop Viewport Toggle Pill -->
-  <button class="view-toggle-pill" id="view-toggle-btn" onclick="window.app.toggleFrame()" title="Toggle phone frame / expanded view">
+  <button class="view-toggle-pill" id="view-toggle-btn" onclick="window.app ? window.app.toggleFrame() : null" title="Toggle phone frame / expanded view">
     <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
     <span id="view-toggle-text">Expand View</span>
   </button>
 
   <div id="phone">
 
-    <!-- 1. SPLASH SCREEN -->
+    <!-- 1. SPLASH SCREEN (Ink 2 Insight Native Full-Screen Mobile Intro) -->
     <section class="scr on" id="splash">
-      <div class="mark"><i></i></div>
-      <h1 class="d">Doc Scanner</h1>
-      <p>Getting your health camps ready…</p>
-      <div class="bar"><b></b></div>
+      <!-- Ambient Lighting Auras for Depth -->
+      <div class="splash-ambient-aura pink"></div>
+      <div class="splash-ambient-aura teal"></div>
+
+      <!-- Top Clinical Status Pill -->
+      <div class="splash-top-bar">
+        <div class="splash-top-badge">
+          <span class="splash-badge-dot"></span>
+          <span>CLINICAL VISION AI · READY</span>
+        </div>
+      </div>
+
+      <!-- Center Logo Animation Stage (Seamless Edge-to-Edge, No Player Box) -->
+      <div class="splash-stage">
+        <video id="splash-video" class="splash-video-element" autoplay muted playsinline preload="auto">
+          <source src="assets/loading.mp4" type="video/mp4">
+        </video>
+      </div>
+
+      <!-- Bottom Streamlined Mobile Intake Progress -->
+      <div class="splash-bottom-wrap">
+        <div class="splash-progress-track">
+          <div class="splash-progress-bar" id="splash-progress-bar"></div>
+        </div>
+
+        <div class="splash-status-row">
+          <span id="splash-status-text">Initializing Vision AI...</span>
+          <span id="splash-pct">0%</span>
+        </div>
+
+        <!-- Bottom Compliance & Quick Skip -->
+        <div class="splash-bottom-bar">
+          <span class="splash-compliance-tag">🔒 DPDP Act 2023 · SaMD Protocol</span>
+          <button class="splash-skip-btn" onclick="event.stopPropagation(); window.finishSplash();" type="button">
+            Skip &rarr;
+          </button>
+        </div>
+      </div>
     </section>
 
-    <!-- 2. LANDING SCREEN -->
+    <!-- 2. LANDING SCREEN — INK 2 INSIGHT CLINICAL INTAKE -->
     <section class="scr" id="landing">
-      <div class="hero">
-        <div class="pg"></div>
-        <div class="pg"></div>
-        <div class="mark" style="width:44px;height:54px;border-width:2px;"><i></i></div>
-        <h1>Paper forms in.<br>Clean records out.</h1>
-        <p>Scan both pages of a health camp intake form and let Groq Vision transcribe the clinical details.</p>
+      <!-- Top Brand Navigation Bar -->
+      <div class="landing-nav">
+        <div class="landing-logo-group">
+          <img src="assets/logo.png" alt="Ink 2 Insight" class="landing-brand-logo-img" />
+          <div>
+            <div class="landing-logo-text">Ink 2 Insight</div>
+            <span class="landing-logo-sub">IDEAS TO IMPACT · CLINICAL INTAKE</span>
+          </div>
+        </div>
+        <button class="landing-nav-btn" onclick="window.app.go('login')" id="landing-login-btn">
+          Sign In
+        </button>
       </div>
-      <div class="feat">
-        <div>
-          <span class="ic">
+
+      <!-- Hero Header -->
+      <div class="landing-hero-box">
+        <h1 class="landing-headline">OPTICAL CLINICAL INTAKE FOR MEDICAL CAMPS</h1>
+        <p class="landing-subheadline">Transform paper screening forms into verified digital records with 3-second Groq Vision OCR transcription.</p>
+      </div>
+
+      <!-- 2x2 Service Cards Grid (In Brand Theme) -->
+      <div class="landing-services-grid">
+        <!-- 1. OPTICAL SCAN -->
+        <div class="landing-service-card" onclick="window.app.go('login')" id="card-optical-scan">
+          <div class="landing-service-icon-wrap" style="background:#FCE4EC;color:#D81B60;">
             <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
-          </span>
-          <p><b>Scan both pages</b><span>Page 1 and Page 2 are automatically paired and calibrated.</span></p>
+          </div>
+          <b class="landing-service-title">OPTICAL SCAN</b>
+          <p class="landing-service-desc">Dual-page camp forms. Automatic alignment &amp; rapid OCR capture.</p>
+          <span class="landing-service-link">START SCAN &rarr;</span>
         </div>
-        <div>
-          <span class="ic">
-            <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
-          </span>
-          <p><b>Check only what is unclear</b><span>Ambiguous handwriting and missing fields are flagged in amber for the physician.</span></p>
+
+        <!-- 2. AI EXTRACTION -->
+        <div class="landing-service-card" onclick="window.app.go('login')" id="card-ai-extract">
+          <div class="landing-service-icon-wrap" style="background:#FFF0F5;color:#E91E63;">
+            <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <b class="landing-service-title">AI EXTRACTION</b>
+          <p class="landing-service-desc">95 clinical indicators &amp; vitals extracted in 3 sec with 98.4% accuracy.</p>
+          <span class="landing-service-link">VIEW VITALS &rarr;</span>
         </div>
-        <div>
-          <span class="ic">
-            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-          </span>
-          <p><b>Export to Excel (.xlsx)</b><span>Every camp, all 95 clinical and vitals details in one styled Microsoft Excel workbook.</span></p>
+
+        <!-- 3. DOCTOR TRIAGE -->
+        <div class="landing-service-card" onclick="window.app.go('login')" id="card-doctor-triage">
+          <div class="landing-service-icon-wrap" style="background:#FEF3C7;color:#D97706;">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+          </div>
+          <b class="landing-service-title">DOCTOR TRIAGE</b>
+          <p class="landing-service-desc">Amber flags for low-confidence handwriting &amp; human physician sign-off.</p>
+          <span class="landing-service-link">TRIAGE QUEUE &rarr;</span>
+        </div>
+
+        <!-- 4. MIS WORKBOOK -->
+        <div class="landing-service-card" onclick="window.app.go('login')" id="card-mis-export">
+          <div class="landing-service-icon-wrap" style="background:#E9F4EE;color:#107C41;">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+          </div>
+          <b class="landing-service-title">MIS WORKBOOK</b>
+          <p class="landing-service-desc">Multi-sheet Excel export with automated formulas &amp; camp analytics.</p>
+          <span class="landing-service-link">EXPORT EXCEL &rarr;</span>
         </div>
       </div>
-      <div style="flex:1;"></div>
-      <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
-        <button class="btn" onclick="window.app.go('login')">Sign in as Doctor</button>
-        <button class="btn ghost" onclick="window.app.go('home')">Enter Demo Mode Directly</button>
+
+      <!-- Action Buttons Stack -->
+      <div class="landing-cta-container">
+        <button class="landing-primary-btn" onclick="window.app.go('login')">
+          <span>Start Document Intake</span>
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <p class="landing-compliance-note">
+          🔒 DPDP Act 2023 · ISO 27001 · SaMD Human-in-the-Loop Oversight
+        </p>
       </div>
     </section>
 
-    <!-- 3. LOGIN SCREEN -->
+    <!-- 3. SIGN IN SCREEN (Reference: Saad Shaikh Elegant Topographic Pink Wave) -->
     <section class="scr" id="login">
-      <div class="top">
-        <button class="back" aria-label="Back" onclick="window.app.go('landing')">
-          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+      <div class="signin-wave-box">
+        <button class="signin-back-btn" onclick="window.app.go('landing')" aria-label="Back">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#fff;"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <b>Physician Authentication</b>
+
+        <!-- Centered Brand Logo Badge in Wavy Header -->
+        <div class="signin-brand-center">
+          <img src="assets/logo.png" alt="Ink 2 Insight" class="signin-brand-logo-img" />
+        </div>
+
+        <svg viewBox="0 0 400 165" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="signinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF758C"/>
+              <stop offset="50%" stop-color="#FF6B8B"/>
+              <stop offset="100%" stop-color="#D81B60"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="165" fill="url(#signinGrad)" stroke="none"/>
+
+          <!-- Topographic Contour Rings matching reference -->
+          <ellipse class="topo-ring" cx="200" cy="75" rx="140" ry="70" transform="rotate(-6 200 75)"/>
+          <ellipse class="topo-ring" cx="200" cy="75" rx="90" ry="45" transform="rotate(-6 200 75)"/>
+          <ellipse class="topo-ring" cx="340" cy="95" rx="110" ry="55" transform="rotate(12 340 95)"/>
+          <ellipse class="topo-ring" cx="60" cy="85" rx="95" ry="48" transform="rotate(-15 60 85)"/>
+
+          <!-- Organic S-Wave Transition into Pure White Card -->
+          <path class="wave-cutout" d="M 0,125 C 90,110 160,158 270,145 C 330,135 375,112 400,102 L 400,165 L 0,165 Z"/>
+        </svg>
       </div>
-      <div class="body">
-        <h1 style="font-size:30px;margin-top:14px;">Welcome back</h1>
-        <p style="color:var(--mute);margin-bottom:12px;">Sign in with your hospital or camp credentials.</p>
-        
-        <label for="login-email">Email Address</label>
-        <input id="login-email" type="email" placeholder="priya@hospital.in" value="dr.priya@clinic.org" autocomplete="email">
-        
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" placeholder="••••••••" value="demo1234" autocomplete="current-password">
-        
-        <p class="err" id="login-error"></p>
-        
-        <button class="btn" style="margin-top:8px;" onclick="window.app.login()">Sign in</button>
-        <button class="btn ghost" style="margin-top:10px;" onclick="window.app.loginDemo()">Use Demo Account (Dr. Priya)</button>
-        
-        <p style="text-align:center;margin-top:20px;color:var(--mute);font-size:13.5px;">
-          Camp administrator credentials? Use the desktop console.
-        </p>
+
+      <div class="signin-content-box">
+        <div class="signin-title-wrap">
+          <h1 class="signin-title">Clinic Access</h1>
+          <div class="signin-title-underline"></div>
+        </div>
+
+        <!-- 3 Auth Tabs: Phone OTP, Quick PIN, Email -->
+        <div class="signin-tabs">
+          <button type="button" class="signin-tab-btn active" id="auth-tab-btn-otp" onclick="window.app.switchAuthTab('otp')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Phone OTP
+          </button>
+          <button type="button" class="signin-tab-btn" id="auth-tab-btn-pin" onclick="window.app.switchAuthTab('pin')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Doctor PIN
+          </button>
+          <button type="button" class="signin-tab-btn" id="auth-tab-btn-email" onclick="window.app.switchAuthTab('email')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email
+          </button>
+        </div>
+
+        <!-- 1. PHONE OTP FORM -->
+        <form id="auth-form-otp" onsubmit="event.preventDefault(); window.app.loginWithOtp();">
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-phone">Mobile Phone</label>
+            <div class="signin-otp-split">
+              <div class="signin-input-wrap">
+                <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                <input id="login-phone" type="tel" placeholder="98765 43210" required />
+              </div>
+              <button type="button" class="signin-otp-btn" id="btn-request-otp" onclick="window.app.requestOtp()">
+                Send OTP
+              </button>
+            </div>
+          </div>
+
+          <div class="signin-form-group" id="otp-entry-group" style="display:none;">
+            <label class="signin-label" for="login-otp">6-Digit Verification Code</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              <input id="login-otp" type="text" placeholder="123456" maxlength="6" autocomplete="one-time-code" />
+            </div>
+            <div class="field-hint-chip">
+              <span>⚡ Field Test Code: <b>123456</b></span>
+            </div>
+          </div>
+
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-comm-code-otp">Community Invite Code</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              <input id="login-comm-code-otp" type="text" value="CAMP-2026" placeholder="CAMP-2026" uppercase required />
+            </div>
+          </div>
+
+          <p class="err" id="login-otp-error" style="margin-bottom:8px;"></p>
+
+          <button type="submit" class="signin-submit-btn" id="login-otp-submit-btn">
+            Sign In with Phone
+          </button>
+        </form>
+
+        <!-- 2. QUICK PIN FORM -->
+        <form id="auth-form-pin" onsubmit="event.preventDefault(); window.app.loginWithPin();" style="display:none;">
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-pin-user">Doctor Name / Mobile</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input id="login-pin-user" type="text" placeholder="Dr. Priya or 9876543210" required />
+            </div>
+          </div>
+
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-pin-code">4-Digit Station PIN</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              <input id="login-pin-code" type="password" placeholder="••••" maxlength="6" inputmode="numeric" required />
+            </div>
+            <div class="field-hint-chip">
+              <span>⚡ Default Field PIN: <b>1234</b></span>
+            </div>
+          </div>
+
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-comm-code-pin">Community Invite Code</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <input id="login-comm-code-pin" type="text" value="CAMP-2026" placeholder="CAMP-2026" uppercase required />
+            </div>
+          </div>
+
+          <p class="err" id="login-pin-error" style="margin-bottom:8px;"></p>
+
+          <button type="submit" class="signin-submit-btn" id="login-pin-submit-btn">
+            Unlock Station Access
+          </button>
+        </form>
+
+        <!-- 3. EMAIL / PASSWORD FORM -->
+        <form id="auth-form-email" onsubmit="event.preventDefault(); window.app.login();" style="display:none;">
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-email">Email</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <input id="login-email" type="email" placeholder="physician@hospital.org" autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-password">Password</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+              <button type="button" class="signin-pwd-toggle" onclick="const p=document.getElementById('login-password'); p.type = p.type==='password'?'text':'password';" aria-label="Toggle password visibility">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="signin-form-group">
+            <label class="signin-label" for="login-comm-code-email">Community Invite Code</label>
+            <div class="signin-input-wrap">
+              <svg class="signin-input-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <input id="login-comm-code-email" type="text" value="CAMP-2026" placeholder="CAMP-2026" uppercase />
+            </div>
+          </div>
+
+          <p class="err" id="login-error" style="margin-bottom:8px;"></p>
+
+          <div class="signin-meta-row">
+            <label class="signin-remember-wrap">
+              <input type="checkbox" id="login-remember" checked />
+              <span>Remember Me</span>
+            </label>
+            <a href="#" class="signin-forgot-link" onclick="event.preventDefault(); window.app.forgotPassword();">Forgot Password?</a>
+          </div>
+
+          <button type="submit" class="signin-submit-btn" id="login-submit-btn">
+            Login with Email
+          </button>
+        </form>
+
+        <!-- Community Setup Link Bar -->
+        <div class="community-link-bar" onclick="window.app.openCommunityModal()">
+          <div>
+            <b>Join or Create Community</b>
+            <span style="display:block;">Got an invite code or starting a camp?</span>
+          </div>
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;color:#D81B60;"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <!-- Quick Demo One-Click Sign In -->
+        <button type="button" class="btn ghost" style="margin-top:12px;border:1.5px dashed #D81B60;color:#D81B60;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;background:#FFF0F5;" onclick="window.app.loginDemo()">
+          <span>⚡ Demo 1-Click Access (Dr. Priya · Attending Physician)</span>
+        </button>
+
+        <div class="signin-footer-link" style="margin-top:14px;">
+          Need a clinic account? <span class="action" onclick="window.app.promptSignUp()">Contact Administrator</span>
+        </div>
       </div>
     </section>
 
@@ -98,64 +348,206 @@
     <section class="scr" id="home">
       <div class="head">
         <div>
-          <small>Good morning</small>
-          <h2 id="home-doctor-name">Dr. Priya</h2>
-          <span class="ai-indicator-chip" id="ai-chip">● Groq Vision Active</span>
+          <small class="greeting-sub">Good day,</small>
+          <h2 id="home-doctor-name" class="greeting-name">Physician</h2>
         </div>
-        <div class="av" id="home-avatar">P</div>
+        <div class="header-actions">
+          <button class="notif-bell-btn" onclick="window.app.triggerSessionTimeout()" title="Lock Station (Test Page 5: Session Expired Modal)">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </button>
+          <button class="notif-bell-btn" onclick="window.app.openCameraPermissionModal(true)" title="Check Camera Permission (Test Page 6: Camera Permission Modal)">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <button class="notif-bell-btn" onclick="window.app.go('records')" title="Notifications & Triage Alerts">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span class="bell-badge" id="header-notif-count">0</span>
+          </button>
+          <div class="av" id="home-avatar" onclick="window.app.go('settings')" title="Doctor Profile">
+            <span>D</span>
+            <span class="avatar-status-dot"></span>
+          </div>
+        </div>
       </div>
 
       <div class="body" id="home-body">
-        <!-- Active Camp Ring Card -->
-        <div class="active" id="active-camp-card" onclick="window.app.openCampPicker()">
-          <div class="ring" id="home-ring" style="--p:0;">
+        <!-- Active Camp Dark Hero Banner -->
+        <div class="active-camp-banner" id="active-camp-card" onclick="window.app.openCampPicker()">
+          <div class="hero-ring" id="home-ring" style="--p:0;">
             <div>
               <b id="home-ring-pct">0%</b>
               <span>done</span>
             </div>
           </div>
-          <div style="flex:1;min-width:0;">
-            <p style="text-transform:uppercase;letter-spacing:0.04em;font-size:11px;font-weight:600;color:var(--amber);">Active Health Camp</p>
-            <h3 id="home-camp-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</h3>
-            <p id="home-camp-subtitle">0 of 0 forms</p>
+          <div class="hero-details">
+            <div class="hero-tag-row">
+              <span class="hero-label">ACTIVE CAMP</span>
+              <span class="camp-status-badge" id="home-camp-status-badge">● Standby</span>
+            </div>
+            <b id="home-camp-title" class="hero-title">No Active Camp Selected</b>
+            <span id="home-camp-subtitle" class="hero-sub">Tap to create or register a camp</span>
+          </div>
+          <div class="hero-arrow">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
           </div>
         </div>
 
-        <!-- 3 Dynamic Aggregate KPI Tiles -->
-        <div class="stats">
-          <div class="st">
-            <b id="kpi-scanned">0</b>
-            <span>Scanned</span>
+        <!-- 3 Pastel Metric Tiles -->
+        <div class="kpi-row-3">
+          <div class="kpi-tile kpi-tile-mint">
+            <div class="kpi-num" id="kpi-scanned">0</div>
+            <div class="kpi-name">Scanned</div>
           </div>
-          <div class="st warn">
-            <b id="kpi-tocheck">0</b>
-            <span>To check</span>
+          <div class="kpi-tile kpi-tile-amber" onclick="window.app.go('records')" style="cursor:pointer;">
+            <div class="kpi-tile-header">
+              <div class="kpi-num" id="kpi-tocheck">0</div>
+              <span class="pulse-attention-dot" id="pulse-attention-dot" style="display:none;"></span>
+            </div>
+            <div class="kpi-name">To check</div>
           </div>
-          <div class="st">
-            <b id="kpi-camps">0</b>
-            <span>Camps</span>
+          <div class="kpi-tile kpi-tile-sage">
+            <div class="kpi-num" id="kpi-camps">0</div>
+            <div class="kpi-name">Camps</div>
           </div>
         </div>
 
-        <!-- Quick Operational Bar -->
-        <div style="display:flex;gap:8px;margin:12px 0 4px;">
-          <button class="btn amber" style="padding:10px 12px;font-size:13px;flex:1.2;" onclick="window.app.exportExcel()">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-            📊 View & Export Excel
-          </button>
-          <button class="btn ghost" style="padding:10px 12px;font-size:13px;flex:1;" onclick="window.app.go('export')">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            View Sheet
-          </button>
-          <button class="btn ghost" style="padding:10px 12px;font-size:13px;width:auto;" onclick="window.app.openNewCampModal()" title="New Camp">
-            + Camp
-          </button>
+        <!-- Horizontal Camp Schedule Calendar Strip (Sample 8 & 10) -->
+        <div class="camp-calendar-strip">
+          <div class="date-chip">
+            <span class="day">Mon</span>
+            <b class="num">13</b>
+          </div>
+          <div class="date-chip">
+            <span class="day">Tue</span>
+            <b class="num">14</b>
+          </div>
+          <div class="date-chip">
+            <span class="day">Wed</span>
+            <b class="num">15</b>
+          </div>
+          <div class="date-chip active">
+            <span class="day">Thu</span>
+            <b class="num">16</b>
+            <span class="camp-dot"></span>
+          </div>
+          <div class="date-chip">
+            <span class="day">Fri</span>
+            <b class="num">17</b>
+          </div>
+          <div class="date-chip">
+            <span class="day">Sat</span>
+            <b class="num">18</b>
+          </div>
+          <div class="date-chip">
+            <span class="day">Sun</span>
+            <b class="num">19</b>
+          </div>
         </div>
 
-        <!-- Health Camps Section -->
+        <!-- 2x2 Core Clinical Bento Grid (Sample 7, 10 & 11) -->
+        <div class="clinical-bento-grid">
+          <div class="bento-tile bento-emerald" onclick="window.app.go('export')">
+            <div class="bento-top">
+              <div class="bento-icon-box">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+              </div>
+              <div class="bento-action-arrow">
+                <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+            <div class="bento-bottom">
+              <b class="bento-title">Excel Sheet</b>
+              <span class="bento-desc" id="bento-excel-rows">0 rows ready</span>
+            </div>
+          </div>
+
+          <div class="bento-tile bento-sky" onclick="window.app.go('analytics')">
+            <div class="bento-top">
+              <div class="bento-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              </div>
+              <div class="bento-action-arrow">
+                <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+            <div class="bento-bottom">
+              <b class="bento-title">Camp Analytics</b>
+              <span class="bento-desc">Vitals & telemetry</span>
+            </div>
+          </div>
+
+          <div class="bento-tile bento-amber" onclick="window.app.go('records')">
+            <div class="bento-top">
+              <div class="bento-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              </div>
+              <div class="bento-badge-amber" id="bento-tocheck-badge">0 to check</div>
+            </div>
+            <div class="bento-bottom">
+              <b class="bento-title">Review Queue</b>
+              <span class="bento-desc">Verify records</span>
+            </div>
+          </div>
+
+          <div class="bento-tile bento-rose" onclick="window.app.openNewCampModal()">
+            <div class="bento-top">
+              <div class="bento-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+              <div class="bento-action-arrow">
+                <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+            <div class="bento-bottom">
+              <b class="bento-title">+ Add Camp</b>
+              <span class="bento-desc">Screening drive</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Intake Telemetry & EKG Waveform Strip -->
+        <div class="vitals-telemetry-card" onclick="window.app.go('analytics')">
+          <div class="telemetry-info">
+            <span class="telemetry-label">Live OCR Intake Engine</span>
+            <div class="telemetry-val">
+              <b>Vision AI</b>
+              <span>Active</span>
+            </div>
+            <div class="telemetry-meta">
+              <span class="live-dot-mini"></span>
+              <span>Groq Dual-Page · Ready</span>
+            </div>
+          </div>
+          <div class="telemetry-ekg-wrap">
+            <svg viewBox="0 0 140 40" class="ekg-svg">
+              <path class="ekg-path" d="M0,20 L30,20 L36,12 L42,32 L48,4 L54,28 L60,20 L85,20 L91,10 L97,34 L103,2 L109,30 L115,20 L140,20" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Automated Clinical Triage Alert Card -->
+        <div class="triage-alert-card" id="home-triage-card" onclick="window.app.go('records')" style="display:none;">
+          <div class="triage-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+          <div class="triage-body">
+            <div class="triage-header">
+              <b class="triage-title">Clinical Triage Attention</b>
+              <span class="triage-badge">Priority Review</span>
+            </div>
+            <p class="triage-desc" id="home-triage-desc">Awaiting intake records...</p>
+          </div>
+          <div class="triage-arrow">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+
+        <!-- Organizations & Committees Section -->
         <div class="sec">
-          <h3>Your Health Camps</h3>
-          <button onclick="window.app.openNewCampModal()">+ Add Camp</button>
+          <div>
+            <h3 style="margin-bottom:2px;">Organizations & Committees</h3>
+            <small style="color:var(--mute);font-size:12px;">Records and Excels maintained per club / committee</small>
+          </div>
+          <button onclick="window.app.openNewCampModal()">+ Add Club / Org</button>
         </div>
         <div id="camps-list">
           <!-- Rendered via JS -->
@@ -171,7 +563,7 @@
         </div>
       </div>
 
-      <!-- Bottom Tab Navigation -->
+      <!-- Floating Frosted Glass Bottom Navigation -->
       <div class="nav">
         <button class="on" id="nav-btn-home" onclick="window.app.go('home')">
           <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
@@ -184,13 +576,13 @@
         <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
           <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
         </button>
-        <button id="nav-btn-export" onclick="window.app.go('export')">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-          Excel
+        <button id="nav-btn-analytics" onclick="window.app.go('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analytics
         </button>
         <button id="nav-btn-settings" onclick="window.app.go('settings')">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Settings
+          Profile
         </button>
       </div>
     </section>
@@ -248,15 +640,11 @@
         <input type="file" id="camera-file-input" accept="image/*" style="display:none;" onchange="window.app.onFileUploaded(event)">
         <button type="button" class="btn ghost" onclick="window.app.uploadPhoto()">
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-          Upload Photo
-        </button>
-        <button type="button" class="btn ghost" onclick="window.app.loadDemoSamples()">
-          <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          Load 2-Page Sample
+          Upload Form Photo
         </button>
         <button type="button" class="btn ghost" onclick="window.app.flipCamera()">
           <svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
-          Flip
+          Flip Camera
         </button>
       </div>
     </section>
@@ -277,19 +665,19 @@
           <div class="sheet" id="pairs-p2-preview" data-t="Page 2: Exam & Referral"></div>
         </div>
 
-        <label for="pairs-person-name">Patient Name (Optional pre-check)</label>
-        <input id="pairs-person-name" placeholder="e.g. Ramesh Kumar (or AI will transcribe)">
-
-        <label for="pairs-camp-select">Health Camp Assignment</label>
-        <select id="pairs-camp-select">
+        <label for="pairs-camp-select" style="font-weight:700;color:var(--ink);font-size:13.5px;">File Under Organization / Club / Committee</label>
+        <select id="pairs-camp-select" style="border:1.5px solid var(--teal);font-weight:600;background:#FFF9FA;">
           <!-- Populated from state -->
         </select>
+
+        <label for="pairs-person-name" style="margin-top:8px;">Patient Name (Optional pre-check)</label>
+        <input id="pairs-person-name" placeholder="Patient Full Name">
 
         <p class="err" id="pairs-err"></p>
 
         <button class="btn" id="extract-run-btn" style="margin-top:6px;" onclick="window.app.saveAndExtract()">
           <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          Save & Transcribe with Groq AI
+          Save & Transcribe Document Pages
         </button>
         
         <button class="btn ghost" style="margin-top:10px;" onclick="window.app.startScan()">
@@ -301,7 +689,7 @@
     <!-- 7. HUMAN-IN-THE-LOOP CLINICAL REVIEW SCREEN (HYBRID POWER) -->
     <section class="scr" id="review">
       <div class="top">
-        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+        <button class="back" aria-label="Back" onclick="window.app.goBack()">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
         <b id="review-title">Physician Verification</b>
@@ -359,7 +747,7 @@
           <div class="form-grid">
             <div>
               <label for="rev-age">Age</label>
-              <input id="rev-age" placeholder="e.g. 21">
+              <input id="rev-age" placeholder="Age">
             </div>
             <div>
               <label for="rev-gender">Gender</label>
@@ -374,7 +762,7 @@
           <div class="form-grid">
             <div>
               <label for="rev-blood-group">Blood Group</label>
-              <input id="rev-blood-group" placeholder="e.g. O+">
+              <input id="rev-blood-group" placeholder="Blood Group (A+, B+, O+, etc.)">
             </div>
             <div>
               <label for="rev-dob">Date of Birth</label>
@@ -411,33 +799,33 @@
           <div class="form-grid">
             <div>
               <label for="rev-height">Height (cm)</label>
-              <input id="rev-height" placeholder="e.g. 172">
+              <input id="rev-height" placeholder="Height in cm">
             </div>
             <div>
               <label for="rev-weight">Weight (kg)</label>
-              <input id="rev-weight" placeholder="e.g. 65">
+              <input id="rev-weight" placeholder="Weight in kg">
             </div>
           </div>
 
           <div class="form-grid">
             <div>
               <label for="rev-bp">Blood Pressure <span class="field-badge-warn" id="badge-bp" style="display:none;">Check value</span></label>
-              <input id="rev-bp" placeholder="e.g. 120/80">
+              <input id="rev-bp" placeholder="120/80">
             </div>
             <div>
               <label for="rev-pulse">Pulse (bpm)</label>
-              <input id="rev-pulse" placeholder="e.g. 78">
+              <input id="rev-pulse" placeholder="Pulse bpm">
             </div>
           </div>
 
           <div class="form-grid">
             <div>
               <label for="rev-rbs">RBS (mg/dL)</label>
-              <input id="rev-rbs" placeholder="e.g. 95">
+              <input id="rev-rbs" placeholder="RBS mg/dL">
             </div>
             <div>
               <label for="rev-waist">Waist (cm)</label>
-              <input id="rev-waist" placeholder="e.g. 76">
+              <input id="rev-waist" placeholder="Waist cm">
             </div>
           </div>
         </div>
@@ -448,7 +836,7 @@
           <input id="rev-allergies" placeholder="No known allergies / details">
 
           <label for="rev-surgery">Previous Surgery / Hospitalization</label>
-          <input id="rev-surgery" placeholder="e.g. Appendectomy at age 12">
+          <input id="rev-surgery" placeholder="Surgery / Hospitalization details">
 
           <label for="rev-medications">Current / Previous Medications</label>
           <input id="rev-medications" placeholder="Medications details">
@@ -469,10 +857,10 @@
         <!-- Section 3: Family History -->
         <div class="review-section" id="rsec-family">
           <label for="rev-fam-diabetes">Family: Diabetes</label>
-          <input id="rev-fam-diabetes" placeholder="e.g. Yes (Father)">
+          <input id="rev-fam-diabetes" placeholder="Relationship / Details">
 
           <label for="rev-fam-hypertension">Family: Hypertension</label>
-          <input id="rev-fam-hypertension" placeholder="e.g. Yes (Mother)">
+          <input id="rev-fam-hypertension" placeholder="Relationship / Details">
 
           <label for="rev-fam-heart">Family: Heart Disease</label>
           <input id="rev-fam-heart" placeholder="None / details">
@@ -555,11 +943,11 @@
           <div class="form-grid">
             <div>
               <label for="rev-va-right">Distant Vision Right</label>
-              <input id="rev-va-right" placeholder="e.g. 6/6">
+              <input id="rev-va-right" placeholder="6/6">
             </div>
             <div>
               <label for="rev-va-left">Distant Vision Left</label>
-              <input id="rev-va-left" placeholder="e.g. 6/6">
+              <input id="rev-va-left" placeholder="6/6">
             </div>
           </div>
 
@@ -583,13 +971,37 @@
 
           <label for="rev-doctor-notes">Physician Clinical Notes</label>
           <textarea id="rev-doctor-notes" rows="3" placeholder="Verified and endorsed by attending camp doctor…"></textarea>
+
+          <!-- Attending Physician Signature Pad -->
+          <div class="signature-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b style="font-size:13px;color:var(--ink);">Attending Physician Signature</b>
+              <button class="btn ghost" style="width:auto;padding:2px 8px;font-size:11px;" type="button" onclick="window.app.clearSignature()">Clear</button>
+            </div>
+            <div class="signature-pad-wrapper">
+              <canvas id="doctor-sig-canvas"></canvas>
+            </div>
+            <small style="color:var(--mute);font-size:11px;">Sign with finger or stylus to confirm clinical review under human oversight.</small>
+          </div>
+
+          <div class="samd-banner">
+            <b>SaMD Compliance:</b> Automated OCR extraction is assistive and requires physician verification before export or prescription dispatch.
+          </div>
         </div>
 
         <!-- Fixed Action Button -->
         <div style="margin-top:20px;padding-bottom:10px;">
           <button class="btn" id="approve-btn" onclick="window.app.approveAndSaveRecord()">
             <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M5 12l5 5L20 7"/></svg>
-            Approve & Save to Database
+            Approve & Bill Paper
+          </button>
+          <button class="btn ghost" id="save-draft-btn" style="border:1.5px solid var(--line);margin-top:10px;" onclick="window.app.saveDraftReview()">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+            Save Draft Edits (Do Not Approve Yet)
+          </button>
+          <button class="btn ghost" style="color:var(--err);border:1.5px solid #F8D7DA;margin-top:10px;" onclick="window.app.eraseActiveRecord()">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            Erase Patient Record (DPDP Act Compliance)
           </button>
         </div>
       </div>
@@ -598,18 +1010,31 @@
     <!-- 8. ALL PATIENT RECORDS SCREEN -->
     <section class="scr" id="records">
       <div class="top">
-        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+        <button class="back" aria-label="Back" onclick="window.app.goBack()">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <b>Patient Intake Records</b>
-        <button class="btn ghost" style="width:auto;padding:6px 10px;font-size:12px;" onclick="window.app.exportExcel()">
-          Excel
+        <b>Organization Patient Records</b>
+        <button class="btn btn-excel" style="width:auto;padding:6px 12px;font-size:12px;" onclick="window.app.downloadActiveOrgExcel()">
+          Download Excel
         </button>
       </div>
 
       <div class="body">
-        <div style="margin:12px 0 8px;">
-          <input id="records-search" type="search" placeholder="Search patient name, ID, or camp…" oninput="window.app.filterRecords()">
+        <!-- Organization / Committee Switcher Bar -->
+        <div style="background:#fff;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);margin:10px 0 12px;box-shadow:var(--sh-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
+            <label for="records-org-filter" style="font-size:11.5px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:0.5px;margin:0;">
+              Active Club / Organization:
+            </label>
+            <span id="records-org-count" style="font-size:12px;font-weight:700;color:var(--teal);"></span>
+          </div>
+          <select id="records-org-filter" style="width:100%;margin:0;font-weight:600;" onchange="window.app.onRecordsOrgChange()">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <div style="margin:10px 0 8px;">
+          <input id="records-search" type="search" placeholder="Search patient name, ID, or vitals…" oninput="window.app.filterRecords()">
         </div>
 
         <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;">
@@ -636,69 +1061,71 @@
         <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
           <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
         </button>
-        <button id="nav-btn-export-2" onclick="window.app.go('export')">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-          Excel
+        <button id="nav-btn-analytics-2" onclick="window.app.go('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analytics
         </button>
         <button id="nav-btn-settings-2" onclick="window.app.go('settings')">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Settings
+          Profile
         </button>
       </div>
     </section>
-
     <!-- 9. EXCEL EXPORT SCREEN -->
     <section class="scr" id="export">
       <div class="top">
-        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+        <button class="back" aria-label="Back" onclick="window.app.goBack()">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <b>Clinic Excel Export</b>
+        <b>Clinical MIS Spreadsheet</b>
+        <button class="btn" style="width:auto;padding:6px 12px;font-size:12px;background:#107C41;border-radius:10px;" onclick="window.app.executeExport()">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+          Export .xlsx
+        </button>
       </div>
 
       <div class="body">
-        <h2 style="font-size:22px;margin:14px 0 6px;">Clinic Excel Spreadsheet & Export</h2>
-        <p style="color:var(--mute);margin-bottom:14px;">View live clinical data sheets or download comprehensive Microsoft Excel (.xlsx) workbooks containing all 8 form sections, vitals, medical history, and clinical reviews.</p>
+        <!-- Executive MIS Cockpit Controls -->
+        <div style="background:#fff;border:1px solid #CBD5E1;border-radius:16px;padding:12px 14px;margin:12px 0 10px;box-shadow:0 2px 8px rgba(15,23,42,0.03);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;font-weight:700;color:#0F172A;">Health Camp Dataset:</span>
+              <span class="tag" style="background:#E9F4EE;color:#107C41;font-size:10.5px;">All 95 Parameters</span>
+            </div>
+            <label for="export-only-reviewed" style="margin:0;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:#334155;font-weight:600;">
+              <input type="checkbox" id="export-only-reviewed" style="width:15px;height:15px;accent-color:#107C41;" onchange="window.app.onExportFilterChanged()">
+              Approved only
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+            <select id="export-camp-select" onchange="window.app.onExportFilterChanged()" style="font-size:12.5px;padding:8px 10px;height:38px;border-radius:10px;border:1px solid #CBD5E1;">
+              <option value="">All Health Camps (All Records)</option>
+            </select>
+            <button class="btn" style="width:auto;height:38px;padding:0 14px;font-size:12px;background:#107C41;border-radius:10px;white-space:nowrap;" onclick="window.app.executeExport()">
+              <svg viewBox="0 0 24 24" style="width:15px;height:15px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+              Download .xlsx
+            </button>
+          </div>
+          <div style="margin-top:8px;">
+            <input id="excel-search-input" placeholder="🔍 Search patient name, ID, vitals, or clinical findings in sheet…" oninput="window.app.filterExcelPreview()" style="font-size:12.5px;padding:8px 12px;margin:0;border-radius:10px;height:36px;background:#F8FAFC;border:1px solid #CBD5E1;">
+          </div>
+        </div>
 
         <!-- Dynamic Download Confirmation Banner -->
-        <div id="excel-download-banner" style="display:none;background:#ddf1ea;border:1.5px solid #0E7C6B;border-radius:14px;padding:12px 14px;margin:10px 0 14px;"></div>
-
-        <label for="export-camp-select">Filter by Health Camp</label>
-        <select id="export-camp-select" onchange="window.app.onExportFilterChanged()">
-          <option value="">All Health Camps (All Records)</option>
-        </select>
-
-        <div style="display:flex;align-items:center;gap:10px;margin:12px 0 14px;">
-          <input type="checkbox" id="export-only-reviewed" style="width:auto;" onchange="window.app.onExportFilterChanged()">
-          <label for="export-only-reviewed" style="margin:0;font-size:13.5px;cursor:pointer;">
-            Export only physician-approved records
-          </label>
-        </div>
-
-        <div style="display:flex;gap:10px;margin-bottom:14px;">
-          <button class="btn amber" style="flex:1;" onclick="window.app.executeExport()">
-            <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-            Download .xlsx Workbook
-          </button>
-        </div>
-
-        <!-- Live Spreadsheet Search Bar -->
-        <div style="margin-bottom:8px;">
-          <input id="excel-search-input" placeholder="🔍 Search patient name, ID, BP, or details in sheet…" oninput="window.app.filterExcelPreview()" style="font-size:13px;padding:9px 12px;margin:0;border-radius:10px;">
-        </div>
+        <div id="excel-download-banner" style="display:none;background:#E8F5E9;border:1.5px solid #107C41;border-radius:14px;padding:10px 14px;margin:8px 0 10px;"></div>
 
         <!-- Interactive In-App Excel Sheet Viewer -->
         <div class="excel-window" id="excel-window-el">
           <div class="excel-ribbon">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff;"><rect x="3" y="3" width="18" height="18" rx="3" fill="#0E7C6B"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="2"/></svg>
-              <span id="excel-ribbon-filename">clinic_records_all.xlsx (Live Viewer)</span>
+            <div class="excel-ribbon-title">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff;"><rect x="3" y="3" width="18" height="18" rx="3" fill="#0B552C"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="2"/></svg>
+              <span id="excel-ribbon-filename">clinic_records_all.xlsx</span>
             </div>
             <div style="display:flex;gap:6px;">
-              <button class="btn ghost" id="excel-fs-btn" style="width:auto;padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.2);color:#fff;" onclick="window.app.toggleExcelFullscreen()">
+              <button class="btn ghost" id="excel-fs-btn" style="width:auto;padding:4px 10px;font-size:11px;background:rgba(255,255,255,0.2);color:#fff;border-radius:8px;" onclick="window.app.toggleExcelFullscreen()">
                 ⛶ Fullscreen
               </button>
-              <button class="btn ghost" style="width:auto;padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.25);color:#fff;" onclick="window.app.executeExport()">
+              <button class="btn ghost" style="width:auto;padding:4px 10px;font-size:11px;background:rgba(255,255,255,0.25);color:#fff;border-radius:8px;" onclick="window.app.executeExport()">
                 ⬇ Save .xlsx
               </button>
             </div>
@@ -718,11 +1145,11 @@
           </div>
         </div>
 
-        <div class="info-card">
-          <b>Spreadsheet Security Safeguard:</b> Native Excel (.xlsx) formatting ensures all text cells and medical entries are treated strictly as string literals, preventing formula injection. Includes styled teal headers, frozen panes, camp overview sheet, and auto-column widths for all 95 clinical details.
+        <div class="info-card" style="margin-top:10px;">
+          <b>Spreadsheet Security Safeguard:</b> Native Excel (.xlsx) formatting ensures all text cells and medical entries are treated strictly as string literals, preventing formula injection. Includes styled green headers, frozen panes, camp overview sheet, and auto-column widths for all 95 clinical parameters.
         </div>
 
-        <div class="sec" style="margin-top:24px;">
+        <div class="sec" style="margin-top:18px;">
           <h3>Camps Individual Export</h3>
         </div>
         <div id="export-camps-list">
@@ -743,58 +1170,310 @@
         <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
           <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
         </button>
-        <button class="on" id="nav-btn-export-3" onclick="window.app.go('export')">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-          Excel
+        <button id="nav-btn-analytics-3" onclick="window.app.go('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analytics
         </button>
         <button id="nav-btn-settings-3" onclick="window.app.go('settings')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Settings
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Profile
+      </div>
+    </section>
+
+    <!-- 10. CAMP ANALYTICS & EPIDEMIOLOGY SCREEN -->
+    <section class="scr" id="analytics">
+      <div class="top">
+        <button class="back" aria-label="Back" onclick="window.app.goBack()">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <b>Camp Analytics & Epidemiology</b>
+      </div>
+
+      <div class="body">
+        <h2 style="font-size:22px;margin:14px 0 4px;">Clinical Telemetry</h2>
+        <p style="color:var(--mute);margin-bottom:14px;font-size:13px;">Aggregated physiological vitals and referral pathways across all screened patients.</p>
+
+        <!-- Blood Pressure Classification -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(216,27,96,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b style="font-size:14px;color:var(--ink);">Blood Pressure Triage</b>
+            <span class="tag" id="analytics-patient-count" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;">128 Patients</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Normal (&lt;120/80)</span>
+                <b id="analytics-bp-normal-pct">62%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bp-normal-bar" style="width:62%;height:100%;background:#059669;border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Pre-Hypertension (120-139/80-89)</span>
+                <b id="analytics-bp-prehtn-pct">24%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bp-prehtn-bar" style="width:24%;height:100%;background:#D97706;border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Stage 1 & 2 HTN (≥140/90)</span>
+                <b id="analytics-bp-htn-pct" style="color:var(--err);">14%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bp-htn-bar" style="width:14%;height:100%;background:var(--err);border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BMI Staging -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(216,27,96,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b style="font-size:14px;color:var(--ink);">BMI Distribution</b>
+            <span class="tag" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;">Calculated</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Underweight (&lt;18.5)</span>
+                <b id="analytics-bmi-under-pct">14%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bmi-under-bar" style="width:14%;height:100%;background:#38BDF8;border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Normal Weight (18.5 - 24.9)</span>
+                <b id="analytics-bmi-normal-pct">58%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bmi-normal-bar" style="width:58%;height:100%;background:#059669;border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                <span>Overweight & Obese (≥25)</span>
+                <b id="analytics-bmi-over-pct">28%</b>
+              </div>
+              <div style="height:6px;background:var(--mist);border-radius:4px;overflow:hidden;">
+                <div id="analytics-bmi-over-bar" style="width:28%;height:100%;background:#D81B60;border-radius:4px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Systemic Findings -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;">
+            <small style="color:var(--mute);text-transform:uppercase;font-size:10px;font-weight:700;">Dental Health</small>
+            <b id="analytics-dental-pct" style="font:800 20px 'Bricolage Grotesque';display:block;margin-top:4px;color:var(--primary);">34%</b>
+            <span style="font-size:11px;color:var(--mute);">Caries / Cavities Advised</span>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;">
+            <small style="color:var(--mute);text-transform:uppercase;font-size:10px;font-weight:700;">Vision Deficit</small>
+            <b id="analytics-vision-pct" style="font:800 20px 'Bricolage Grotesque';display:block;margin-top:4px;color:var(--primary);">18%</b>
+            <span style="font-size:11px;color:var(--mute);">Refractive Error &lt;6/6</span>
+          </div>
+        </div>
+
+        <div class="samd-banner">
+          <b>Epidemiological Notice:</b> Automated camp summaries are derived from physician-verified intake forms under human clinical oversight.
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="nav">
+        <button id="nav-btn-home-5" onclick="window.app.go('home')">
+          <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+          Home
+        </button>
+        <button id="nav-btn-records-5" onclick="window.app.go('records')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Records
+        </button>
+        <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
+          <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
+        </button>
+        <button class="on" id="nav-btn-analytics-5" onclick="window.app.go('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analytics
+        </button>
+        <button id="nav-btn-settings-5" onclick="window.app.go('settings')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Profile
         </button>
       </div>
     </section>
 
-    <!-- 10. SYSTEM SETTINGS & DEMO CONTROLS -->
+    <!-- 11. DOCTOR PROFILE & SYSTEM SECURITY -->
     <section class="scr" id="settings">
       <div class="top">
-        <button class="back" aria-label="Back" onclick="window.app.go('home')">
+        <button class="back" aria-label="Back" onclick="window.app.goBack()">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <b>Settings & Status</b>
+        <b>Physician Profile & System</b>
       </div>
 
       <div class="body">
-        <h2 style="font-size:22px;margin:14px 0 6px;">System Diagnostics</h2>
-        <p style="color:var(--mute);margin-bottom:14px;">Operational parameters, AI engine status, and synthetic demo reset.</p>
+        <!-- Doctor Profile Card -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:18px;margin:14px 0 12px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 12px rgba(216,27,96,0.05);">
+          <div class="av" id="settings-doctor-av" style="width:54px;height:54px;font-size:20px;background:linear-gradient(135deg, #D81B60 0%, #AD1457 100%);">D</div>
+          <div style="flex:1;">
+            <b id="settings-doctor-name" style="font-size:17px;color:var(--ink);">Attending Physician</b>
+            <p id="settings-doctor-email" style="color:var(--mute);font-size:12.5px;margin-top:2px;">physician@hospital.org</p>
+            <span class="tag" id="settings-community-name" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;margin-top:4px;display:inline-block;">Primary Healthcare Outreach</span>
+          </div>
+        </div>
 
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
-          <small style="color:var(--mute);text-transform:uppercase;font-size:11px;font-weight:600;">Vision AI Engine</small>
+        <!-- Community Workspace Card -->
+        <div style="background:#FFF9FB;border:1.5px solid #F8BBD0;border-radius:18px;padding:16px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <small style="color:var(--primary);text-transform:uppercase;font-size:10.5px;font-weight:700;">Clinical Workspace</small>
+            <span class="tag" style="background:#E6F7F0;color:#059669;font-size:10.5px;">Active Workspace</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+            <b id="settings-hub-title" style="font-size:15px;color:var(--ink);">Mobile Health Camp Unit</b>
+            <button class="btn ghost" style="width:auto;padding:4px 10px;font-size:11.5px;background:#fff;" onclick="window.app.toast('Clinic workspace code: CAMP-2026')">
+              Code: CAMP-2026 📋
+            </button>
+          </div>
+        </div>
+
+        <h3 style="font-size:16px;margin:16px 0 8px;">System Diagnostics & Cloud Sync</h3>
+
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;">
+          <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Vision AI Engine</small>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
             <b id="settings-ai-provider">Groq Vision (qwen/qwen3.8-27b)</b>
-            <span class="tag" id="settings-ai-status">Connected</span>
+            <span class="tag" id="settings-ai-status">Active API</span>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;">
+          <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Cloud Database (PostgreSQL)</small>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <b>Supabase Cloud DB</b>
+            <span class="tag" id="settings-supabase-status">Connected</span>
           </div>
         </div>
 
         <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
-          <small style="color:var(--mute);text-transform:uppercase;font-size:11px;font-weight:600;">Database Storage</small>
+          <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Local Offline Cache</small>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-            <b>SQLite (clinic_records.db)</b>
-            <span class="tag">Active</span>
+            <b>SQLite Local Mirror</b>
+            <span class="tag" id="settings-sqlite-status">Synced</span>
           </div>
-          <small style="display:block;margin-top:6px;color:var(--mute);">Zero fake metrics — all progress rings and counts computed directly from database records.</small>
         </div>
 
-        <div class="sec" style="margin-top:20px;">
-          <h3>Synthetic Demo Controls</h3>
+        <button class="btn ghost" style="margin-bottom:12px;border-color:var(--line);" onclick="window.app.syncSupabaseCloud()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M19 11a4 4 0 00-7.8-1.5A5 5 0 003 14a5 5 0 005 5h11a4 4 0 000-8zM12 12v5m-3-3l3-3 3 3"/></svg>
+          Sync Offline DB to Supabase Cloud
+        </button>
+
+        <div class="sec" style="margin-top:16px;">
+          <h3>Usage & Plan Quota</h3>
         </div>
 
-        <div class="info-card">
-          Demonstration mode seeds realistic, synthetic clinic records for Chennai health camps. No real patient data is stored.
+        <!-- Plan & Quota Card -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b id="billing-plan-name" style="font-size:15px;color:var(--ink);">Standard Monthly Plan</b>
+            <span class="tag ok" id="billing-plan-status">Active</span>
+          </div>
+          <p id="billing-renews-on" style="color:var(--mute);font-size:12px;margin:4px 0 12px;">Renews on: Loading...</p>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 6px;margin-bottom:12px;">
+            <div>
+              <small style="display:block;color:var(--mute);font-size:11px;">Included</small>
+              <b id="billing-papers-included" style="font-size:16px;color:var(--ink);">-</b>
+            </div>
+            <div>
+              <small style="display:block;color:var(--mute);font-size:11px;">Used</small>
+              <b id="billing-papers-used" style="font-size:16px;color:#D81B60;">-</b>
+            </div>
+            <div>
+              <small style="display:block;color:var(--mute);font-size:11px;">Remaining</small>
+              <b id="billing-papers-remaining" style="font-size:16px;color:#059669;">-</b>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-bottom:4px;">
+              <span>Usage Telemetry</span>
+              <span id="billing-usage-pct">0%</span>
+            </div>
+            <div style="width:100%;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden;">
+              <div id="billing-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg, #0E7C6B, #D81B60);transition:width 0.4s ease;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-top:6px;">
+            <span id="billing-rollover-info">Rollover: 0</span>
+            <span id="billing-daily-cap-info">Daily Cap: 2,000 / day</span>
+          </div>
+
+          <button class="btn" style="margin-top:14px;padding:10px 14px;font-size:13.5px;" onclick="window.app.openBuyAddonModal()">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14"/></svg>
+            Buy Add-on Papers (Razorpay)
+          </button>
         </div>
 
-        <button class="btn ghost" style="color:var(--err);border:1.5px solid #F8D7DA;" onclick="window.app.resetDemoData()">
+        <div class="sec" style="margin-top:16px;">
+          <h3>GST Invoices & Receipts</h3>
+        </div>
+
+        <!-- Invoices List Card -->
+        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
+          <div id="billing-invoices-list" style="display:flex;flex-direction:column;gap:8px;">
+            <p style="color:var(--mute);font-size:12.5px;text-align:center;padding:12px 0;">Loading GST invoices...</p>
+          </div>
+        </div>
+
+        <div class="sec" style="margin-top:16px;">
+          <h3>Flow A: Start & Account Screens</h3>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <button class="btn ghost" style="font-size:12px;padding:10px 8px;border-color:var(--line);" onclick="window.app.go('landing')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            1. Welcome Screen
+          </button>
+          <button class="btn ghost" style="font-size:12px;padding:10px 8px;border-color:var(--line);" onclick="window.app.go('login')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+            2. Login (OTP/PIN)
+          </button>
+          <button class="btn ghost" style="font-size:12px;padding:10px 8px;border-color:var(--line);" onclick="window.app.openCommunityModal()">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            3. Community Modal
+          </button>
+          <button class="btn ghost" style="font-size:12px;padding:10px 8px;border-color:var(--line);" onclick="window.app.triggerSessionTimeout()">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            4. Lock Station (PIN)
+          </button>
+          <button class="btn ghost" style="font-size:12px;padding:10px 8px;grid-column:span 2;border-color:var(--line);" onclick="window.app.openCameraPermissionModal(true)">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            5. Camera Permission Guidance
+          </button>
+        </div>
+
+        <div class="sec" style="margin-top:16px;">
+          <h3>Account & Data Management</h3>
+        </div>
+
+        <button class="btn ghost" style="color:var(--ink);border:1.5px solid var(--line);margin-bottom:10px;" onclick="window.app.clearClinicCache()">
           <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-          Reset to Clean Demo Records
+          Clear Local Cache & Refresh
+        </button>
+
+        <button class="btn ghost" style="color:var(--err);border:1.5px solid #F8D7DA;margin-bottom:20px;" onclick="window.app.logout()">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Sign Out of Clinic Account
         </button>
       </div>
 
@@ -811,36 +1490,241 @@
         <button class="go" aria-label="Scan a record" onclick="window.app.startScan()">
           <svg viewBox="0 0 24 24" style="width:28px;height:28px;"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M4 12h16"/></svg>
         </button>
-        <button id="nav-btn-export-4" onclick="window.app.go('export')">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-          Excel
+        <button id="nav-btn-analytics-4" onclick="window.app.go('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analytics
         </button>
         <button class="on" id="nav-btn-settings-4" onclick="window.app.go('settings')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Settings
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Profile
         </button>
       </div>
     </section>
 
+    <!-- BUY ADD-ON MODAL OVERLAY -->
+    <div class="ov" id="buy-addon-modal">
+      <div style="max-width:380px;">
+        <div class="modal-handle-bar"></div>
+        <div class="modal-header-row">
+          <h3>Buy Add-on Papers</h3>
+          <button type="button" class="modal-close-icon-btn" onclick="window.app.closeBuyAddonModal()">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <p style="color:var(--mute);font-size:12.5px;margin-bottom:12px;">
+          Select paper pack. Add-ons never expire and roll over with your account.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+          <label style="border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="radio" name="addon-pack" value="1000" checked>
+            <div style="flex:1;">
+              <b style="display:block;font-size:14px;color:var(--ink);">1,000 Papers Pack</b>
+              <span style="font-size:12px;color:var(--mute);">₹3,000 + 18% GST (₹3,540 total)</span>
+            </div>
+          </label>
+          <label style="border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="radio" name="addon-pack" value="2500">
+            <div style="flex:1;">
+              <b style="display:block;font-size:14px;color:var(--ink);">2,500 Papers Pack</b>
+              <span style="font-size:12px;color:var(--mute);">₹6,250 + 18% GST (₹7,375 total)</span>
+            </div>
+          </label>
+          <label style="border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="radio" name="addon-pack" value="5000">
+            <div style="flex:1;">
+              <b style="display:block;font-size:14px;color:var(--ink);">5,000 Papers Pack</b>
+              <span style="font-size:12px;color:var(--mute);">₹10,000 + 18% GST (₹11,800 total)</span>
+            </div>
+          </label>
+        </div>
+
+        <button class="btn" id="pay-razorpay-btn" onclick="window.app.buyAddonPack()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Pay with Razorpay Standard Checkout
+        </button>
+        <button class="btn ghost" style="margin-top:8px;" onclick="window.app.closeBuyAddonModal()">Cancel</button>
+      </div>
+    </div>
+
     <!-- NEW CAMP MODAL OVERLAY -->
     <div class="ov" id="ov">
       <div>
-        <h2 style="font-size:22px;">Create New Health Camp</h2>
-        <p style="color:var(--mute);font-size:13px;margin-bottom:8px;">Set up a new screening camp quota in SQLite.</p>
+        <h2 style="font-size:22px;">Create Organization / Club / Committee</h2>
+        <p style="color:var(--mute);font-size:13px;margin-bottom:8px;">Every scanned record and Excel workbook is maintained under its respective organization.</p>
         
-        <label for="cn">Health Camp Name</label>
-        <input id="cn" placeholder="e.g. Govt Higher Secondary School, Adyar">
+        <label for="cn">Organization / Club / Committee Name</label>
+        <input id="cn" placeholder="Rotary Club / YRC Committee / College Name">
         
         <label for="ci">Target Quota (Expected Records)</label>
         <input id="ci" type="number" value="120" min="1">
 
-        <label for="cd">Date Label</label>
-        <input id="cd" placeholder="e.g. 24 Oct / Today" value="Today">
+        <label for="cd">Date / Camp Session</label>
+        <input id="cd" placeholder="Today" value="Today">
         
         <p class="err" id="cerr"></p>
         
-        <button class="btn" onclick="window.app.saveNewCamp()">Create Camp</button>
+        <button class="btn" onclick="window.app.saveNewCamp()">Create Organization</button>
         <button class="btn ghost" style="margin-top:10px;" onclick="window.app.closeNewCampModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- PAGE 4: JOIN OR CREATE COMMUNITY MODAL -->
+    <div class="ov" id="community-modal">
+      <div>
+        <div class="modal-handle-bar"></div>
+        <div class="modal-header-row">
+          <h3>Clinical Community</h3>
+          <button type="button" class="modal-close-icon-btn" onclick="window.app.closeCommunityModal()">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <p style="color:var(--mute);font-size:12.5px;margin-bottom:14px;">
+          Connect your field intake station to a hospital, college, or NGO community workspace.
+        </p>
+
+        <!-- Segmented Tab Switcher -->
+        <div class="signin-tabs">
+          <button type="button" class="signin-tab-btn active" id="comm-tab-btn-join" onclick="window.app.switchCommunityTab('join')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+            Join with Invite Code
+          </button>
+          <button type="button" class="signin-tab-btn" id="comm-tab-btn-create" onclick="window.app.switchCommunityTab('create')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>
+            Create New
+          </button>
+        </div>
+
+        <!-- Tab 1: Join with Invite Code -->
+        <div id="comm-panel-join">
+          <label for="comm-join-code">Community Invite Code</label>
+          <div class="signin-otp-split">
+            <input id="comm-join-code" placeholder="e.g. CAMP-2026 or ROTARY" style="text-transform:uppercase;font-weight:700;letter-spacing:0.05em;" />
+            <button type="button" class="signin-otp-btn" onclick="window.app.verifyCommunityCode()">
+              Verify Code
+            </button>
+          </div>
+
+          <!-- Real-Time Verified Preview Card -->
+          <div class="comm-preview-card" id="comm-preview-box">
+            <b id="comm-preview-name">Community Name</b>
+            <small id="comm-preview-sub">Active Clinical Workspace</small>
+          </div>
+
+          <label for="comm-join-doctor-name" style="margin-top:12px;">Your Full Name</label>
+          <input id="comm-join-doctor-name" placeholder="Dr. Priya or Attending Physician" />
+
+          <p class="err" id="comm-join-error" style="margin-top:6px;"></p>
+
+          <button class="btn" style="margin-top:10px;" onclick="window.app.joinCommunity()">
+            Join Community Workspace
+          </button>
+        </div>
+
+        <!-- Tab 2: Create New Community -->
+        <div id="comm-panel-create" style="display:none;">
+          <label for="comm-create-name">Organization / Club Name</label>
+          <input id="comm-create-name" placeholder="Apollo Community Outreach / YRC Camp" />
+
+          <label for="comm-create-lead">Lead Organizer Name</label>
+          <input id="comm-create-lead" placeholder="Dr. Sarah / Organizer Name" />
+
+          <label for="comm-create-email">Contact Email</label>
+          <input id="comm-create-email" type="email" placeholder="coordinator@organization.org" />
+
+          <label for="comm-create-custom-code">Custom Invite Code (Optional)</label>
+          <input id="comm-create-custom-code" placeholder="e.g. ROTARY-2026" style="text-transform:uppercase;" />
+
+          <p class="err" id="comm-create-error" style="margin-top:6px;"></p>
+
+          <button class="btn" style="margin-top:12px;" onclick="window.app.createCommunity()">
+            Create & Generate Invite Code
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: SESSION EXPIRED MODAL -->
+    <div class="ov" id="session-expired-modal">
+      <div style="text-align:center;">
+        <div class="modal-handle-bar"></div>
+        <div class="session-shield-badge">
+          <svg viewBox="0 0 24 24" style="width:30px;height:30px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+
+        <h3 style="font-size:19px;margin:0 0 6px;color:var(--ink);">Station Session Timed Out</h3>
+        <p style="color:var(--mute);font-size:12.5px;margin:0 0 16px;line-height:1.45;">
+          Patient health intake records are protected under the DPDP Act 2023. Enter your 4-digit PIN to immediately resume your camp station.
+        </p>
+
+        <!-- Active Physician Pill -->
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#F1F5F9;padding:6px 14px;border-radius:99px;margin-bottom:14px;">
+          <div class="av" style="width:24px;height:24px;font-size:11px;background:#D81B60;">D</div>
+          <b id="session-doctor-label" style="font-size:13px;color:var(--ink);">Attending Physician</b>
+        </div>
+
+        <!-- PIN Entry Row -->
+        <div class="pin-display-row">
+          <input type="password" class="pin-digit-box" id="spin-1" maxlength="1" inputmode="numeric" />
+          <input type="password" class="pin-digit-box" id="spin-2" maxlength="1" inputmode="numeric" />
+          <input type="password" class="pin-digit-box" id="spin-3" maxlength="1" inputmode="numeric" />
+          <input type="password" class="pin-digit-box" id="spin-4" maxlength="1" inputmode="numeric" />
+        </div>
+
+        <p class="err" id="session-expired-error" style="margin-bottom:10px;"></p>
+
+        <button class="btn" id="btn-session-unlock" onclick="window.app.unlockSession()">
+          Unlock Station &amp; Resume
+        </button>
+
+        <button class="btn ghost" style="margin-top:10px;border-color:transparent;color:var(--mute);" onclick="window.app.logout()">
+          Sign Out of Account
+        </button>
+      </div>
+    </div>
+
+    <!-- PAGE 6: CAMERA PERMISSION GUIDANCE MODAL -->
+    <div class="ov" id="camera-permission-modal">
+      <div style="text-align:center;">
+        <div class="modal-handle-bar"></div>
+        <div class="camera-perm-icon-wrap">
+          <div class="optic-ring"></div>
+          <svg viewBox="0 0 24 24" style="width:34px;height:34px;"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+
+        <h3 style="font-size:19px;margin:0 0 6px;color:var(--ink);">Camera Access Required</h3>
+        <p style="color:var(--mute);font-size:12.5px;margin:0 0 14px;line-height:1.45;">
+          Ink 2 Insight needs camera access to automatically frame, freeze, and scan 2-page physical paper screening forms.
+        </p>
+
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#F0FDF4;color:#166534;font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;margin-bottom:16px;">
+          <span>🔒 DPDP Act 2023 · Frames are processed in memory only</span>
+        </div>
+
+        <!-- Troubleshooting Box (Visible if blocked) -->
+        <div class="perm-guide-box" id="camera-denied-guide" style="display:none;">
+          <h4>Browser Camera Blocked? How to Enable:</h4>
+          <ol>
+            <li>Tap the <b>Lock / Settings icon</b> in the top address bar.</li>
+            <li>Look for <b>Camera</b> and switch to <b>Allow</b>.</li>
+            <li>Reload the page or tap <b>Try Again</b> below.</li>
+          </ol>
+        </div>
+
+        <button class="btn" id="btn-grant-camera" onclick="window.app.requestCameraPermission()">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Grant Camera Permission
+        </button>
+
+        <button class="btn ghost" style="margin-top:10px;" onclick="window.app.fallbackToUploadPhoto()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Upload Form Photo Instead
+        </button>
+
+        <button class="btn ghost" style="margin-top:8px;border-color:transparent;color:var(--mute);font-size:12px;" onclick="window.app.closeCameraPermissionModal()">
+          Cancel
+        </button>
       </div>
     </div>
 
@@ -849,7 +1733,7 @@
 
   </div>
 
-  <!-- Main Application Logic Module -->
-  <script type="module" src="js/app.js"></script>
+  <!-- Main Application Logic Module (Cache-Busted) -->
+  <script type="module" src="js/app.js?v=20261020_06"></script>
 </body>
 </html>

@@ -112,7 +112,7 @@ class GroqService(AIService):
                 }
             ],
             "temperature": 0.05,
-            "max_tokens": 650,
+            "max_tokens": 2500,
             "response_format": {"type": "json_object"}
         }
 
@@ -194,6 +194,7 @@ class GroqService(AIService):
             return {
                 "success": True,
                 "data": sanitized_data,
+                **sanitized_data,
                 "provider": self.provider_name()
             }
 

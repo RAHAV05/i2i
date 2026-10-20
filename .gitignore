@@ -29,6 +29,10 @@ uploads/
 test_download.xlsx
 *.xlsx
 
+# Invoices & Generated PDFs
+*.pdf
+!backend/invoices/.gitkeep
+
 # OS generated files
 .DS_Store
 .DS_Store?

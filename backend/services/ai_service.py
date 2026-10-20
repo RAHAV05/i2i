@@ -1,49 +1,68 @@
-"""AI Provider Service Interface and Validation Schema for Health Assessment Forms.
+"""AI Extraction Layer & Schema Validation for Clinical Health Camp Forms.
 
-Designed specifically for the two-page Student/Staff Health Screening Form:
-- Page 1: Personal Information, Medical History Table, Family History, Consent & Signature
-- Page 2: Health Assessment Vitals, General Signs, System-wise Examination, Vision, Dental, Referral
-
-Provides standard field metadata:
-{
-  "value": Any,
-  "confidence": float (0.0 to 1.0),
-  "status": "extracted" | "uncertain" | "missing" | "not_applicable",
-  "source_page": 1 | 2,
-  "notes": str or None
-}
+Conforms to Appendix C of the implementation instructions:
+- Prompt and field keys matching student_form and health_assessment sheets
+- Output format per field: [value, confidence]
+- Server-side confidence and medical plausibility flag rules
+- Low-confidence field counting for escalation (blank fields with confidence 1 are NEVER counted)
+- BMI calculated by the app from height and weight
+- Single AI function: ai_service.extract(student_form, health_assessment, camp_id, ...)
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
-import json
+import os
 import re
+import json
+import logging
+from datetime import datetime, timezone
+from abc import ABC, abstractmethod
+from typing import Dict, Any, List, Optional, Tuple, Union
+from pydantic import BaseModel, Field, ValidationError
 
-SYSTEM_EXTRACTION_PROMPT = """You are an accurate, strict medical document transcription assistant specializing in Student/Staff Health Screening Forms.
-Extract all handwritten and printed clinical data from the two scanned pages into valid JSON.
+logger = logging.getLogger(__name__)
 
-Page 1 (Student/Staff Personal Information & Medical History):
-- personal_information: doc_id, admission_id, school_college_name, staff_student_type, full_name, gender, year_of_study, course_dept, section, shift, blood_group, dob, age, mobile_number, marital_status, parent_spouse_name, number_of_children, address, consent_screening ("checked"|"unchecked"|"uncertain"), consent_first_aid ("checked"|"unchecked"|"uncertain"), signature_present ("present"|"not_present"|"uncertain")
-- medical_history: known_allergies, abdominal_pain_indigestion_constipation, irregular_pcod_menopause, skin_hair_ear_nose_problems, current_previous_medications, previous_surgery_hospitalization, social_history, physical_activity (for each of these 8 items, return {"value": "yes"|"no"|"unchecked"|"uncertain", "details": string or null for handwritten notes}), other_medical_issues, immediate_family_count, personal_physician
-- family_history: thyroid, diabetes, heart_disease, hypertension, cancer, epilepsy, asthma, other_conditions (for each condition, return {"value": "checked"|"unchecked"|"uncertain", "relationship": string or null})
+# Configurable thresholds
+FLAG_CONFIDENCE = float(os.getenv("FLAG_CONFIDENCE", "0.8"))
+FLAG_CONFIDENCE_MEASURE = float(os.getenv("FLAG_CONFIDENCE_MEASURE", "0.9"))
 
-Page 2 (Health Assessment):
-- health_assessment: patient_name, examination_date, height, weight, pulse, blood_pressure, rbs, waist_circumference, ecg_notes, echo_notes, pallor, lymphadenopathy, deformity, icterus, cyanosis, edema, clubbing (general signs are "yes"|"no"|"unchecked"|"uncertain")
-- system_examination: ear, nose, throat, respiratory_system, cardiovascular_system, abdomen, central_nervous_system, skin, hair, musculoskeletal_system, others, psychological_consultation (for each system, return {"value": "normal"|"abnormal"|"not_examined"|"uncertain", "details": string or null})
-- vision: visual_category ("unaided"|"aided_with_glass"|"aided_lens"|"not_brought_glass"|"couldnt_be_assessed"), distant_vision_right, distant_vision_left
-- dental: normality ("normal"|"abnormal"|"not_examined"), abnormality, advice
-- referral: specialist_referred_to, doctor_signature_present ("present"|"not_present"|"uncertain")
+CRITICAL_MEASUREMENT_KEYS = ("bp", "pulse", "weight_kg", "rbs", "height_cm")
+MANDATORY_FIELD_KEYS = ("full_name", "dob")
 
-CRITICAL RULES:
-1. Extract ONLY information explicitly printed or handwritten on the pages.
-2. Interpret handwriting conservatively. Preserve original units (cm, kg, mt, mmHg, mg/dL) and punctuation.
-3. NEVER invent, hallucinate, guess, or infer missing values, diagnoses, or names.
-4. For Yes/No checkboxes or columns:
-   - If checked/written Yes -> "yes"
-   - If checked/written No -> "no"
-   - If unmarked or empty -> "unchecked" (DO NOT assume an unchecked box means negative medical history)
-5. If a field is blank or unreadable, set value to null.
-6. Return ONLY a single, valid JSON object matching these sections. Do not include markdown code block formatting if JSON mode is active."""
+APPENDIX_C_PROMPT = """You are reading two photographed pages of one person's medical camp record.
+Image 1 is the student or staff form (filled by the person).
+Image 2 is the health assessment sheet (filled by the doctor).
+Read printed text, handwriting and ticked boxes.
+Return only JSON. For every field return [value, confidence], where value is
+a string or null and confidence is a number from 0 to 1.
+Rules:
+- Never guess. If a field is blank, return [null, 1].
+- If you cannot read it, return [null, a number below 0.5].
+- Yes or No fields return exactly 'Yes', 'No' or null.
+- Normal or abnormal fields return exactly 'Normal', 'Abnormal' or null, with details in the _d field.
+- Copy numbers exactly as written. Do not convert units.
+- Doctors' shorthand may appear: BP, PR, HR, Wt, Ht, RBS, NAD, WNL, HTN, T2DM, Adv, F/U, Ref, Rx, O/E, H/O, C/O.
+- Do not diagnose or add advice.
+
+Field keys to extract:
+Identifiers: moc_doc_id, admission_id, institution, staff_or_student
+Personal: full_name, gender, year, course, section, shift, blood_group, dob, age, mobile, marital_status, parent_or_spouse, children, address
+History (Yes or No, plus _d): allergy, allergy_d, abdominal, abdominal_d, menstrual, menstrual_d, skin_ear_nose, skin_ear_nose_d, medications, medications_d, surgery, surgery_d, social, social_d, activity, activity_d, other_issues, family_members, physician
+Family history (Yes or No, plus _d for relationship): fh_thyroid, fh_thyroid_d, fh_diabetes, fh_diabetes_d, fh_heart, fh_heart_d, fh_hypertension, fh_hypertension_d, fh_cancer, fh_cancer_d, fh_epilepsy, fh_epilepsy_d, fh_asthma, fh_asthma_d, fh_others, fh_others_d
+Consent: consent_screening, consent_first_aid, signature_present
+Vitals: exam_date, height_cm, weight_kg, pulse, bp, rbs, waist_cm, ecg, echo
+Signs (Yes or No): pallor, icterus, edema, lymphadenopathy, cyanosis, clubbing, deformity
+System exam (Normal or Abnormal, plus _d): ear, ear_d, nose, nose_d, throat, throat_d, rs, rs_d, cvs, cvs_d, abdomen, abdomen_d, cns, cns_d, skin, skin_d, hair, hair_d, msk, msk_d, exam_others, exam_others_d, psych, psych_d
+Vision: vision_type, right_eye, left_eye
+Dental: dental, dental_abnormality, dental_advice
+Referral: specialist, doctor_name"""
+
+# Maintain SYSTEM_EXTRACTION_PROMPT alias for backward compatibility
+SYSTEM_EXTRACTION_PROMPT = APPENDIX_C_PROMPT
+
+
+class FieldValueModel(BaseModel):
+    value: Optional[Union[str, int, float]] = None
+    confidence: float = Field(ge=0.0, le=1.0)
+
 
 class AIService(ABC):
     """Abstract interface for document vision AI providers."""
@@ -51,22 +70,22 @@ class AIService(ABC):
     @abstractmethod
     def extract_from_images(
         self,
-        page1_bytes: bytes,
-        page1_mime: str,
-        page2_bytes: bytes,
-        page2_mime: str
+        student_form_bytes: bytes,
+        student_form_mime: str,
+        health_assessment_bytes: bytes,
+        health_assessment_mime: str
     ) -> Dict[str, Any]:
-        """Process Page 1 and Page 2 and return structured extraction JSON."""
+        """Process student_form and health_assessment and return structured extraction JSON."""
         pass
 
     @abstractmethod
     def is_configured(self) -> bool:
-        """Return True if the provider has the necessary credentials configured."""
+        """Return True if the provider has necessary credentials."""
         pass
 
     @abstractmethod
     def provider_name(self) -> str:
-        """Return friendly name of the provider."""
+        """Return provider display name."""
         pass
 
 
@@ -81,25 +100,39 @@ def _clean_str(val: Any) -> Optional[str]:
 
 
 def _clean_list(val: Any) -> List[str]:
-    """Ensure a clean list of unique string tokens."""
-    if not val or not isinstance(val, list):
+    """Normalize a list of strings, filtering out empty/null values."""
+    if not val:
         return []
-    out = []
-    for item in val:
-        if item is not None:
-            clean_item = str(item).strip()
-            if clean_item and clean_item not in out:
-                out.append(clean_item)
-    return out
+    if isinstance(val, list):
+        out = []
+        for x in val:
+            cs = _clean_str(x)
+            if cs is not None and cs not in out:
+                out.append(cs)
+        return out
+    cs = _clean_str(val)
+    return [cs] if cs is not None else []
+
 
 
 def _format_meta_field(raw: Any, default_page: int = 1) -> Dict[str, Any]:
-    """Wrap raw data into the standard field metadata structure:
+    """Wrap raw data into standard field metadata structure:
     {value, confidence, status, source_page, notes, details}
     """
+    if isinstance(raw, list) and len(raw) >= 2:
+        val, conf = raw[0], raw[1]
+        clean_v = _clean_str(val) if isinstance(val, (str, int, float)) else val
+        return {
+            "value": clean_v,
+            "confidence": min(1.0, max(0.0, float(conf))),
+            "status": "extracted" if clean_v is not None else "missing",
+            "source_page": default_page,
+            "notes": None,
+            "details": None
+        }
+
     if isinstance(raw, dict) and "value" in raw:
         val = raw.get("value")
-        # Check if value is null-like
         clean_v = _clean_str(val) if isinstance(val, (str, int, float)) else val
         conf = float(raw.get("confidence", 0.95)) if clean_v is not None else 0.0
         stat = raw.get("status") or ("extracted" if clean_v is not None else "missing")
@@ -112,9 +145,7 @@ def _format_meta_field(raw: Any, default_page: int = 1) -> Dict[str, Any]:
             "details": _clean_str(raw.get("details")) or _clean_str(raw.get("relationship"))
         }
 
-    # If raw is a direct primitive or string or dict without 'value'
     if isinstance(raw, dict):
-        # Extract status / specify / details if provided
         status_val = raw.get("status") or raw.get("selection")
         details_val = raw.get("details") or raw.get("specify") or raw.get("relationship")
         clean_v = _clean_str(status_val) if status_val is not None else None
@@ -141,157 +172,436 @@ def _format_meta_field(raw: Any, default_page: int = 1) -> Dict[str, Any]:
     }
 
 
-def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
-    """Validate and sanitize raw AI response against the complete health screening schema.
-    Produces both:
-    1. Grouped `structured_record` containing all 8 form sections with field metadata.
-    2. Backward-compatible top-level keys (`person_name`, `age`, `height`, etc.) for existing DB and API contracts.
+def parse_and_validate_schema(raw_text: str) -> Tuple[bool, Dict[str, Any], Optional[str]]:
+    """Parse JSON string and validate that each entry is [value, confidence].
+    Returns (is_valid: bool, fields_dict: dict, error_msg: str).
     """
-    if isinstance(raw_payload, str):
-        # Strip markdown json codeblock if present
-        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', raw_payload)
-        cleaned = json_match.group(1) if json_match else raw_payload.strip()
+    if not raw_text:
+        return False, {}, "Empty output from model"
+
+    # Strip markdown block if model included it
+    cleaned = raw_text.strip()
+    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', cleaned)
+    if json_match:
+        cleaned = json_match.group(1).strip()
+
+    try:
         data = json.loads(cleaned)
+    except Exception:
+        # Fallback substring extraction
+        s_idx = cleaned.find('{')
+        e_idx = cleaned.rfind('}')
+        if s_idx != -1 and e_idx != -1 and e_idx > s_idx:
+            sub = re.sub(r',\s*([}\]])', r'\1', cleaned[s_idx:e_idx+1])
+            try:
+                data = json.loads(sub)
+            except Exception as e:
+                return False, {}, f"JSON decode error: {e}"
+        else:
+            return False, {}, "No JSON object found in model output"
+
+    if not isinstance(data, dict):
+        return False, {}, "Model output is not a JSON object"
+
+    # Normalize fields to [value, confidence]
+    normalized: Dict[str, List[Any]] = {}
+    for key, val in data.items():
+        if isinstance(val, list) and len(val) >= 2:
+            v = val[0]
+            try:
+                c = float(val[1])
+            except (ValueError, TypeError):
+                c = 0.5
+            normalized[key] = [_clean_str(v), min(1.0, max(0.0, c))]
+        elif isinstance(val, dict):
+            # Nested structure support
+            v = val.get("value")
+            try:
+                c = float(val.get("confidence", 0.95))
+            except (ValueError, TypeError):
+                c = 0.5
+            normalized[key] = [_clean_str(v), min(1.0, max(0.0, c))]
+        else:
+            clean_v = _clean_str(val)
+            normalized[key] = [clean_v, 0.95 if clean_v is not None else 1.0]
+
+    return True, normalized, None
+
+
+def apply_server_side_flags(fields: Dict[str, List[Any]]) -> Dict[str, Any]:
+    """Apply strict server-side clinical plausibility and confidence rules.
+    Returns: {
+        "flags": dict of field_name -> reason,
+        "implausible_fields": list,
+        "low_confidence_fields": list,
+        "missing_mandatory": list,
+        "calculated_bmi": float or None
+    }
+    """
+    flags: Dict[str, str] = {}
+    implausible: List[str] = []
+    low_confidence: List[str] = []
+    missing_mandatory: List[str] = []
+
+    # 1. Confidence checks
+    # IMPORTANT: Never flag blank fields with confidence 1! Only check confidence < threshold
+    for key, item in fields.items():
+        val, conf = item[0], item[1]
+        threshold = FLAG_CONFIDENCE_MEASURE if key in CRITICAL_MEASUREMENT_KEYS else FLAG_CONFIDENCE
+        if conf < threshold:
+            low_confidence.append(key)
+            flags[key] = f"Low confidence ({conf:.2f} < {threshold})"
+
+    # 2. Missing Mandatory Fields (full_name, dob)
+    name_val = fields.get("full_name", [None, 0])[0] or fields.get("person_name", [None, 0])[0]
+    if not name_val:
+        missing_mandatory.append("full_name")
+        flags["full_name"] = "Mandatory field 'full_name' is missing."
+
+    dob_val = fields.get("dob", [None, 0])[0]
+    if not dob_val:
+        # If age is present we note missing dob
+        missing_mandatory.append("dob")
+        flags["dob"] = "Mandatory field 'dob' (Date of Birth) is missing."
+
+    # 3. Medical Plausibility Rules (BP, pulse, weight, height, age, sugar)
+    # A. Blood Pressure: systolic 40-300, diastolic 30-200, systolic > diastolic
+    bp_val = fields.get("bp", [None, 0])[0] or fields.get("blood_pressure", [None, 0])[0]
+    if bp_val:
+        bp_str = str(bp_val).replace(" ", "")
+        if "/" in bp_str:
+            parts = bp_str.split("/")
+            try:
+                s_digits = re.findall(r'\d+', parts[0])
+                d_digits = re.findall(r'\d+', parts[1])
+                if s_digits and d_digits:
+                    sys_p, dia_p = int(s_digits[0]), int(d_digits[0])
+                    if sys_p < 40 or sys_p > 300 or dia_p < 30 or dia_p > 200 or dia_p >= sys_p:
+                        implausible.append("bp")
+                        flags["bp"] = f"Implausible BP '{bp_val}': systolic must be 40-300, diastolic 30-200, and systolic > diastolic."
+            except Exception:
+                implausible.append("bp")
+                flags["bp"] = f"Unparseable BP format: '{bp_val}'"
+        else:
+            implausible.append("bp")
+            flags["bp"] = f"BP must be in systolic/diastolic format (e.g. 120/80), got '{bp_val}'"
+
+    # B. Pulse: 30 to 220 bpm
+    pulse_val = fields.get("pulse", [None, 0])[0]
+    if pulse_val is not None:
+        p_digits = re.findall(r'\d+', str(pulse_val))
+        if p_digits:
+            p_num = int(p_digits[0])
+            if p_num < 30 or p_num > 220:
+                implausible.append("pulse")
+                flags["pulse"] = f"Implausible pulse {p_num} bpm (must be 30-220 bpm)."
+        else:
+            implausible.append("pulse")
+            flags["pulse"] = f"Unparseable pulse value: '{pulse_val}'"
+
+    # C. Weight: 1 to 250 kg
+    weight_val = fields.get("weight_kg", [None, 0])[0] or fields.get("weight", [None, 0])[0]
+    wt_num = None
+    if weight_val is not None:
+        wt_match = re.findall(r'[\d\.]+', str(weight_val))
+        if wt_match:
+            try:
+                wt_num = float(wt_match[0])
+                if wt_num < 1.0 or wt_num > 250.0:
+                    implausible.append("weight_kg")
+                    flags["weight_kg"] = f"Implausible weight {wt_num} kg (must be 1-250 kg)."
+            except ValueError:
+                implausible.append("weight_kg")
+                flags["weight_kg"] = f"Unparseable weight: '{weight_val}'"
+
+    # D. Height: 30 to 250 cm
+    height_val = fields.get("height_cm", [None, 0])[0] or fields.get("height", [None, 0])[0]
+    ht_num = None
+    if height_val is not None:
+        ht_match = re.findall(r'[\d\.]+', str(height_val))
+        if ht_match:
+            try:
+                ht_num = float(ht_match[0])
+                if ht_num < 30.0 or ht_num > 250.0:
+                    implausible.append("height_cm")
+                    flags["height_cm"] = f"Implausible height {ht_num} cm (must be 30-250 cm)."
+            except ValueError:
+                implausible.append("height_cm")
+                flags["height_cm"] = f"Unparseable height: '{height_val}'"
+
+    # Calculate BMI if both height and weight are plausible
+    calculated_bmi = None
+    if wt_num and ht_num and 1.0 <= wt_num <= 250.0 and 30.0 <= ht_num <= 250.0:
+        ht_m = ht_num / 100.0
+        calculated_bmi = round(wt_num / (ht_m * ht_m), 1)
+
+    # E. Age: 0 to 120
+    age_val = fields.get("age", [None, 0])[0]
+    if age_val is not None:
+        a_digits = re.findall(r'\d+', str(age_val))
+        if a_digits:
+            age_num = int(a_digits[0])
+            if age_num < 0 or age_num > 120:
+                implausible.append("age")
+                flags["age"] = f"Implausible age {age_num} (must be 0-120)."
+
+    # F. Sugar (RBS): 20 to 800 mg/dL
+    rbs_val = fields.get("rbs", [None, 0])[0]
+    if rbs_val is not None:
+        r_digits = re.findall(r'\d+', str(rbs_val))
+        if r_digits:
+            rbs_num = int(r_digits[0])
+            if rbs_num < 20 or rbs_num > 800:
+                implausible.append("rbs")
+                flags["rbs"] = f"Implausible RBS {rbs_num} mg/dL (must be 20-800 mg/dL)."
+
+    return {
+        "flags": flags,
+        "implausible_fields": implausible,
+        "low_confidence_fields": low_confidence,
+        "missing_mandatory": missing_mandatory,
+        "calculated_bmi": calculated_bmi
+    }
+
+
+def should_escalate_record(
+    schema_valid: bool,
+    fields: Dict[str, List[Any]],
+    flag_analysis: Dict[str, Any]
+) -> Tuple[bool, str]:
+    """Escalation Decision Rule:
+    Escalate when:
+    1. Primary returns invalid JSON after retries, OR
+    2. 3+ low-confidence fields (confidence < FLAG_CONFIDENCE, blank fields with conf=1 NEVER count), OR
+    3. Any critical measurement (bp, pulse, weight_kg, rbs, height_cm) is low-confidence or implausible.
+    Escalates once at most per record.
+    """
+    if not schema_valid:
+        return True, "Primary model returned invalid JSON after retries"
+
+    low_conf = flag_analysis.get("low_confidence_fields", [])
+    if len(low_conf) >= 3:
+        return True, f"{len(low_conf)} low-confidence fields detected (threshold >= 3): {', '.join(low_conf[:5])}"
+
+    implausible = flag_analysis.get("implausible_fields", [])
+    critical_aliases = {
+        "bp": ("bp", "blood_pressure", "blood_pressure_mmhg"),
+        "pulse": ("pulse", "pulse_bpm"),
+        "weight_kg": ("weight_kg", "weight"),
+        "rbs": ("rbs", "random_blood_sugar_mgdl"),
+        "height_cm": ("height_cm", "height")
+    }
+    for crit_name, aliases in critical_aliases.items():
+        for alias in aliases:
+            if alias in implausible:
+                reason = flag_analysis.get("flags", {}).get(alias) or flag_analysis.get("flags", {}).get(crit_name) or "failed plausibility"
+                return True, f"Critical measurement '{crit_name}' failed medical plausibility: {reason}"
+            if alias in low_conf:
+                detail = f"Critical measurement 'bp' (blood_pressure) is low confidence" if crit_name == "bp" else f"Critical measurement '{crit_name}' is low confidence"
+                return True, detail
+
+    return False, ""
+
+
+def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
+    """Normalize extracted fields and preserve backward compatibility with existing DB columns."""
+    if isinstance(raw_payload, str):
+        valid, fields, err = parse_and_validate_schema(raw_payload)
     elif isinstance(raw_payload, dict):
-        data = raw_payload
+        valid = True
+        fields = {}
+        for k, v in raw_payload.items():
+            if isinstance(v, dict) and k in ("personal_information", "medical_history", "family_history", "health_assessment", "system_examination", "vision", "dental", "referral", "page_1", "page_2"):
+                for sub_k, sub_v in v.items():
+                    if isinstance(sub_v, list) and len(sub_v) >= 2:
+                        fields[sub_k] = [_clean_str(sub_v[0]), float(sub_v[1])]
+                    elif isinstance(sub_v, dict) and "value" in sub_v:
+                        fields[sub_k] = [_clean_str(sub_v.get("value")), float(sub_v.get("confidence", 0.95))]
+                    else:
+                        clean_v = _clean_str(sub_v)
+                        fields[sub_k] = [clean_v, 0.95 if clean_v is not None else 1.0]
+            elif isinstance(v, list) and len(v) >= 2:
+                fields[k] = [_clean_str(v[0]), float(v[1])]
+            elif isinstance(v, dict) and "value" in v:
+                fields[k] = [_clean_str(v.get("value")), float(v.get("confidence", 0.95))]
+            else:
+                clean_v = _clean_str(v)
+                fields[k] = [clean_v, 0.95 if clean_v is not None else 1.0]
     else:
-        raise ValueError("Invalid payload type for extraction response")
+        valid, fields = False, {}
 
-    # Handle flat or legacy response by mapping to groups if necessary
-    p_info_raw = data.get("personal_information") or {}
-    med_hist_raw = data.get("medical_history") or {}
-    fam_hist_raw = data.get("family_history") or {}
-    health_raw = data.get("health_assessment") or {}
-    system_raw = data.get("system_examination") or data.get("systemic_examination") or {}
-    vision_raw = data.get("vision") or {}
-    dental_raw = data.get("dental") or {}
-    referral_raw = data.get("referral") or {}
+    flags_meta = apply_server_side_flags(fields)
+    flags = flags_meta["flags"]
 
-    # If the model returned page_1 and page_2 top keys (like Qwen often does)
-    if "page_1" in data and isinstance(data["page_1"], dict):
-        p1 = data["page_1"]
-        if "personal_information" in p1: p_info_raw = p1["personal_information"]
-        if "medical_history" in p1: med_hist_raw = p1["medical_history"]
-        if "family_history" in p1: fam_hist_raw = p1["family_history"]
-    if "page_2" in data and isinstance(data["page_2"], dict):
-        p2 = data["page_2"]
-        if "health_assessment" in p2: health_raw = p2["health_assessment"]
-        elif "health_assessment_vitals" in p2: health_raw = {**p2["health_assessment_vitals"], "date_of_exam": p2.get("date_of_exam")}
-        if "general_signs" in p2: health_raw = {**health_raw, **p2["general_signs"]}
-        if "system_examination" in p2: system_raw = p2["system_examination"]
-        elif "systemic_examination" in p2: system_raw = p2["systemic_examination"]
-        if "vision" in p2: vision_raw = p2["vision"]
-        if "dental" in p2: dental_raw = p2["dental"]
-        if "referral" in p2: referral_raw = p2["referral"]
-        elif "specialist_referred_to" in p2: referral_raw = {"specialist_referred_to": p2.get("specialist_referred_to")}
+    # Extract backward-compatible top-level keys
+    full_name = fields.get("full_name", [None, 0])[0] or fields.get("person_name", [None, 0])[0]
+    age = fields.get("age", [None, 0])[0]
+    gender = fields.get("gender", [None, 0])[0]
+    bp = fields.get("bp", [None, 0])[0] or fields.get("blood_pressure", [None, 0])[0] or fields.get("blood_pressure_mmhg", [None, 0])[0]
+    wt = fields.get("weight_kg", [None, 0])[0] or fields.get("weight", [None, 0])[0]
+    ht = fields.get("height_cm", [None, 0])[0] or fields.get("height", [None, 0])[0]
+    pulse = fields.get("pulse", [None, 0])[0] or fields.get("pulse_bpm", [None, 0])[0]
+    rbs = fields.get("rbs", [None, 0])[0] or fields.get("random_blood_sugar_mgdl", [None, 0])[0]
+    referral = fields.get("specialist", [None, 0])[0] or fields.get("specialist_referred_to", [None, 0])[0] or fields.get("referral_details", [None, 0])[0]
 
-    # Build Group 1: personal_information
+    # Format vitals with units
+    height_display = f"{ht} cm" if ht and "cm" not in str(ht).lower() else ht
+    weight_display = f"{wt} kg" if wt and "kg" not in str(wt).lower() else wt
+    bp_display = f"{bp} mmHg" if bp and "mmhg" not in str(bp).lower() else bp
+
+    exam_parts = []
+    if pulse: exam_parts.append(f"Pulse: {pulse} bpm")
+    if rbs: exam_parts.append(f"RBS: {rbs} mg/dL")
+    if flags_meta["calculated_bmi"]: exam_parts.append(f"BMI: {flags_meta['calculated_bmi']}")
+
+    # Systemic notes
+    for sys_k in ("ear", "nose", "throat", "rs", "cvs", "abdomen", "cns", "skin", "hair", "msk"):
+        sys_val = fields.get(sys_k, [None, 0])[0]
+        sys_d = fields.get(f"{sys_k}_d", [None, 0])[0]
+        if sys_val == "Abnormal" or sys_d:
+            exam_parts.append(f"{sys_k.upper()}: {sys_d or 'Abnormal'}")
+
+    examination_details = "; ".join(exam_parts) or "Clinical screening recorded."
+
+    uncertain_fields = list(flags_meta["low_confidence_fields"])
+    if isinstance(raw_payload, dict) and raw_payload.get("uncertain_fields"):
+        for uf in _clean_list(raw_payload.get("uncertain_fields")):
+            if uf not in uncertain_fields:
+                uncertain_fields.append(uf)
+
+    if isinstance(raw_payload, dict) and "missing_fields" in raw_payload:
+        missing_fields = list(_clean_list(raw_payload.get("missing_fields")))
+    else:
+        missing_fields = list(flags_meta["missing_mandatory"])
+
+    core_map = {
+        "person_name": full_name,
+        "age": age,
+        "height": ht,
+        "weight": wt,
+        "blood_pressure": bp
+    }
+    for f_name, f_val in core_map.items():
+        if f_val is None and f_name not in missing_fields:
+            missing_fields.append(f_name)
+
+    # Determine status
+    if not valid:
+        status = "needs_manual"
+    elif flags:
+        status = "needs_review"
+    else:
+        status = "needs_review"
+
+    # Build structured_record 8 groups
+    p_info_raw = raw_payload.get("personal_information", {}) if isinstance(raw_payload, dict) else {}
+    med_hist_raw = raw_payload.get("medical_history", {}) if isinstance(raw_payload, dict) else {}
+    fam_hist_raw = raw_payload.get("family_history", {}) if isinstance(raw_payload, dict) else {}
+    health_raw = raw_payload.get("health_assessment", {}) if isinstance(raw_payload, dict) else {}
+    sys_raw = raw_payload.get("system_examination", {}) if isinstance(raw_payload, dict) else {}
+    vision_raw = raw_payload.get("vision", {}) if isinstance(raw_payload, dict) else {}
+    dental_raw = raw_payload.get("dental", {}) if isinstance(raw_payload, dict) else {}
+    ref_raw = raw_payload.get("referral", {}) if isinstance(raw_payload, dict) else {}
+
     personal_information = {
-        "doc_id": _format_meta_field(p_info_raw.get("doc_id") or p_info_raw.get("moc_doc_id"), 1),
-        "admission_id": _format_meta_field(p_info_raw.get("admission_id"), 1),
-        "school_college_name": _format_meta_field(p_info_raw.get("school_college_name"), 1),
-        "staff_student_type": _format_meta_field(p_info_raw.get("staff_student_type"), 1),
-        "full_name": _format_meta_field(p_info_raw.get("full_name") or data.get("person_name") or health_raw.get("patient_name") or health_raw.get("name"), 1),
-        "gender": _format_meta_field(p_info_raw.get("gender") or data.get("gender"), 1),
-        "year_of_study": _format_meta_field(p_info_raw.get("year_of_study"), 1),
-        "course_dept": _format_meta_field(p_info_raw.get("course_dept"), 1),
-        "section": _format_meta_field(p_info_raw.get("section"), 1),
-        "shift": _format_meta_field(p_info_raw.get("shift"), 1),
-        "blood_group": _format_meta_field(p_info_raw.get("blood_group"), 1),
-        "dob": _format_meta_field(p_info_raw.get("dob"), 1),
-        "age": _format_meta_field(p_info_raw.get("age") or data.get("age"), 1),
-        "mobile_number": _format_meta_field(p_info_raw.get("mobile_number") or p_info_raw.get("mobile"), 1),
-        "marital_status": _format_meta_field(p_info_raw.get("marital_status"), 1),
-        "parent_spouse_name": _format_meta_field(p_info_raw.get("parent_spouse_name"), 1),
-        "number_of_children": _format_meta_field(p_info_raw.get("number_of_children"), 1),
-        "address": _format_meta_field(p_info_raw.get("address"), 1),
-        "consent_screening": _format_meta_field(p_info_raw.get("consent_screening") or data.get("consent", {}).get("attend_scheduled_basic_health_screening"), 1),
-        "consent_first_aid": _format_meta_field(p_info_raw.get("consent_first_aid") or data.get("consent", {}).get("receive_care_from_shine_nursing_officer"), 1),
-        "signature_present": _format_meta_field(p_info_raw.get("signature_present"), 1)
+        "doc_id": _format_meta_field(p_info_raw.get("doc_id") or fields.get("moc_doc_id"), 1),
+        "admission_id": _format_meta_field(p_info_raw.get("admission_id") or fields.get("admission_id"), 1),
+        "school_college_name": _format_meta_field(p_info_raw.get("school_college_name") or fields.get("institution"), 1),
+        "staff_student_type": _format_meta_field(p_info_raw.get("staff_student_type") or fields.get("staff_or_student"), 1),
+        "full_name": _format_meta_field(p_info_raw.get("full_name") or fields.get("full_name"), 1),
+        "gender": _format_meta_field(p_info_raw.get("gender") or fields.get("gender"), 1),
+        "year_of_study": _format_meta_field(p_info_raw.get("year_of_study") or fields.get("year"), 1),
+        "course_dept": _format_meta_field(p_info_raw.get("course_dept") or fields.get("course"), 1),
+        "section": _format_meta_field(p_info_raw.get("section") or fields.get("section"), 1),
+        "shift": _format_meta_field(p_info_raw.get("shift") or fields.get("shift"), 1),
+        "blood_group": _format_meta_field(p_info_raw.get("blood_group") or fields.get("blood_group"), 1),
+        "dob": _format_meta_field(p_info_raw.get("dob") or fields.get("dob"), 1),
+        "age": _format_meta_field(p_info_raw.get("age") or fields.get("age"), 1),
+        "mobile_number": _format_meta_field(p_info_raw.get("mobile_number") or fields.get("mobile"), 1),
+        "marital_status": _format_meta_field(p_info_raw.get("marital_status") or fields.get("marital_status"), 1),
+        "parent_spouse_name": _format_meta_field(p_info_raw.get("parent_spouse_name") or fields.get("parent_or_spouse"), 1),
+        "number_of_children": _format_meta_field(p_info_raw.get("number_of_children") or fields.get("children"), 1),
+        "address": _format_meta_field(p_info_raw.get("address") or fields.get("address"), 1),
+        "consent_screening": _format_meta_field(p_info_raw.get("consent_screening") or fields.get("consent_screening"), 1),
+        "consent_first_aid": _format_meta_field(p_info_raw.get("consent_first_aid") or fields.get("consent_first_aid"), 1),
+        "signature_present": _format_meta_field(p_info_raw.get("signature_present") or fields.get("signature_present"), 1),
     }
 
-    # Build Group 2: medical_history
     medical_history = {
-        "known_allergies": _format_meta_field(med_hist_raw.get("known_allergies") or med_hist_raw.get("any_known_allergy"), 1),
-        "abdominal_pain_indigestion_constipation": _format_meta_field(med_hist_raw.get("abdominal_pain_indigestion_constipation"), 1),
-        "irregular_pcod_menopause": _format_meta_field(med_hist_raw.get("irregular_pcod_menopause"), 1),
-        "skin_hair_ear_nose_problems": _format_meta_field(med_hist_raw.get("skin_hair_ear_nose_problems") or med_hist_raw.get("skin_hair_ear_nose_problem"), 1),
-        "current_previous_medications": _format_meta_field(med_hist_raw.get("current_previous_medications") or med_hist_raw.get("any_current_previous_medications"), 1),
-        "previous_surgery_hospitalization": _format_meta_field(med_hist_raw.get("previous_surgery_hospitalization") or med_hist_raw.get("any_previous_surgery_hospitalization"), 1),
-        "social_history": _format_meta_field(med_hist_raw.get("social_history") or med_hist_raw.get("social_history_alcohol_smoking_tobacco"), 1),
-        "physical_activity": _format_meta_field(med_hist_raw.get("physical_activity"), 1),
-        "other_medical_issues": _format_meta_field(med_hist_raw.get("other_medical_issues") or med_hist_raw.get("any_other_medical_issues"), 1),
-        "immediate_family_count": _format_meta_field(med_hist_raw.get("immediate_family_count"), 1),
-        "personal_physician": _format_meta_field(med_hist_raw.get("personal_physician"), 1)
+        "known_allergies": _format_meta_field(med_hist_raw.get("known_allergies") or fields.get("allergy"), 1),
+        "abdominal_pain_indigestion_constipation": _format_meta_field(med_hist_raw.get("abdominal_pain_indigestion_constipation") or fields.get("abdominal"), 1),
+        "irregular_pcod_menopause": _format_meta_field(med_hist_raw.get("irregular_pcod_menopause") or fields.get("menstrual"), 1),
+        "skin_hair_ear_nose_problems": _format_meta_field(med_hist_raw.get("skin_hair_ear_nose_problems") or fields.get("skin_ear_nose"), 1),
+        "current_previous_medications": _format_meta_field(med_hist_raw.get("current_previous_medications") or fields.get("medications"), 1),
+        "previous_surgery_hospitalization": _format_meta_field(med_hist_raw.get("previous_surgery_hospitalization") or fields.get("surgery"), 1),
+        "social_history": _format_meta_field(med_hist_raw.get("social_history") or fields.get("social"), 1),
+        "physical_activity": _format_meta_field(med_hist_raw.get("physical_activity") or fields.get("activity"), 1),
+        "other_medical_issues": _format_meta_field(med_hist_raw.get("other_medical_issues") or fields.get("other_issues"), 1),
+        "immediate_family_count": _format_meta_field(med_hist_raw.get("immediate_family_count") or fields.get("family_members"), 1),
+        "personal_physician": _format_meta_field(med_hist_raw.get("personal_physician") or fields.get("physician"), 1),
     }
 
-    # Build Group 3: family_history
     family_history = {
-        "thyroid": _format_meta_field(fam_hist_raw.get("thyroid"), 1),
-        "diabetes": _format_meta_field(fam_hist_raw.get("diabetes"), 1),
-        "heart_disease": _format_meta_field(fam_hist_raw.get("heart_disease"), 1),
-        "hypertension": _format_meta_field(fam_hist_raw.get("hypertension"), 1),
-        "cancer": _format_meta_field(fam_hist_raw.get("cancer"), 1),
-        "epilepsy": _format_meta_field(fam_hist_raw.get("epilepsy"), 1),
-        "asthma": _format_meta_field(fam_hist_raw.get("asthma"), 1),
-        "other_conditions": _format_meta_field(fam_hist_raw.get("other_conditions") or fam_hist_raw.get("others"), 1)
+        "thyroid": _format_meta_field(fam_hist_raw.get("thyroid") or fields.get("fh_thyroid"), 1),
+        "diabetes": _format_meta_field(fam_hist_raw.get("diabetes") or fields.get("fh_diabetes"), 1),
+        "heart_disease": _format_meta_field(fam_hist_raw.get("heart_disease") or fields.get("fh_heart"), 1),
+        "hypertension": _format_meta_field(fam_hist_raw.get("hypertension") or fields.get("fh_hypertension"), 1),
+        "cancer": _format_meta_field(fam_hist_raw.get("cancer") or fields.get("fh_cancer"), 1),
+        "epilepsy": _format_meta_field(fam_hist_raw.get("epilepsy") or fields.get("fh_epilepsy"), 1),
+        "asthma": _format_meta_field(fam_hist_raw.get("asthma") or fields.get("fh_asthma"), 1),
+        "other_conditions": _format_meta_field(fam_hist_raw.get("other_conditions") or fields.get("fh_others"), 1),
     }
 
-    # Build Group 4: health_assessment
     health_assessment = {
-        "patient_name": _format_meta_field(health_raw.get("patient_name") or health_raw.get("name") or data.get("person_name"), 2),
-        "examination_date": _format_meta_field(health_raw.get("examination_date") or health_raw.get("date_of_exam") or health_raw.get("doe"), 2),
-        "height_cm": _format_meta_field(health_raw.get("height_cm") or data.get("height"), 2),
-        "weight_kg": _format_meta_field(health_raw.get("weight_kg") or data.get("weight"), 2),
-        "pulse_bpm": _format_meta_field(health_raw.get("pulse_bpm") or health_raw.get("pulse_mt") or health_raw.get("pulse"), 2),
-        "blood_pressure_mmhg": _format_meta_field(health_raw.get("blood_pressure_mmhg") or health_raw.get("bp_mmhg") or data.get("blood_pressure"), 2),
-        "random_blood_sugar_mgdl": _format_meta_field(health_raw.get("random_blood_sugar_mgdl") or health_raw.get("rbs_mg_dl") or health_raw.get("rbs"), 2),
-        "waist_circumference_cm": _format_meta_field(health_raw.get("waist_circumference_cm"), 2),
-        "ecg_notes": _format_meta_field(health_raw.get("ecg_notes") or health_raw.get("ecg"), 2),
-        "echo_notes": _format_meta_field(health_raw.get("echo_notes") or health_raw.get("echo"), 2),
-        "pallor": _format_meta_field(health_raw.get("pallor"), 2),
-        "lymphadenopathy": _format_meta_field(health_raw.get("lymphadenopathy"), 2),
-        "deformity": _format_meta_field(health_raw.get("deformity"), 2),
-        "icterus": _format_meta_field(health_raw.get("icterus"), 2),
-        "cyanosis": _format_meta_field(health_raw.get("cyanosis"), 2),
-        "edema": _format_meta_field(health_raw.get("edema"), 2),
-        "clubbing": _format_meta_field(health_raw.get("clubbing"), 2)
+        "patient_name": _format_meta_field(health_raw.get("patient_name") or fields.get("full_name"), 2),
+        "examination_date": _format_meta_field(health_raw.get("examination_date") or fields.get("exam_date"), 2),
+        "height_cm": _format_meta_field(health_raw.get("height_cm") or fields.get("height_cm"), 2),
+        "weight_kg": _format_meta_field(health_raw.get("weight_kg") or fields.get("weight_kg"), 2),
+        "pulse_bpm": _format_meta_field(health_raw.get("pulse_bpm") or fields.get("pulse"), 2),
+        "blood_pressure_mmhg": _format_meta_field(health_raw.get("blood_pressure_mmhg") or fields.get("bp"), 2),
+        "random_blood_sugar_mgdl": _format_meta_field(health_raw.get("random_blood_sugar_mgdl") or fields.get("rbs"), 2),
+        "waist_circumference_cm": _format_meta_field(health_raw.get("waist_circumference_cm") or fields.get("waist_cm"), 2),
+        "ecg_notes": _format_meta_field(health_raw.get("ecg_notes") or fields.get("ecg"), 2),
+        "echo_notes": _format_meta_field(health_raw.get("echo_notes") or fields.get("echo"), 2),
+        "pallor": _format_meta_field(health_raw.get("pallor") or fields.get("pallor"), 2),
+        "lymphadenopathy": _format_meta_field(health_raw.get("lymphadenopathy") or fields.get("lymphadenopathy"), 2),
+        "deformity": _format_meta_field(health_raw.get("deformity") or fields.get("deformity"), 2),
+        "icterus": _format_meta_field(health_raw.get("icterus") or fields.get("icterus"), 2),
+        "cyanosis": _format_meta_field(health_raw.get("cyanosis") or fields.get("cyanosis"), 2),
+        "edema": _format_meta_field(health_raw.get("edema") or fields.get("edema"), 2),
+        "clubbing": _format_meta_field(health_raw.get("clubbing") or fields.get("clubbing"), 2),
     }
 
-    # Build Group 5: system_examination
     system_examination = {
-        "ear": _format_meta_field(system_raw.get("ear"), 2),
-        "nose": _format_meta_field(system_raw.get("nose"), 2),
-        "throat": _format_meta_field(system_raw.get("throat"), 2),
-        "respiratory_system": _format_meta_field(system_raw.get("respiratory_system") or system_raw.get("rs"), 2),
-        "cardiovascular_system": _format_meta_field(system_raw.get("cardiovascular_system") or system_raw.get("cvs"), 2),
-        "abdomen": _format_meta_field(system_raw.get("abdomen"), 2),
-        "central_nervous_system": _format_meta_field(system_raw.get("central_nervous_system") or system_raw.get("cns"), 2),
-        "skin": _format_meta_field(system_raw.get("skin"), 2),
-        "hair": _format_meta_field(system_raw.get("hair"), 2),
-        "musculoskeletal_system": _format_meta_field(system_raw.get("musculoskeletal_system"), 2),
-        "others": _format_meta_field(system_raw.get("others"), 2),
-        "psychological_consultation": _format_meta_field(system_raw.get("psychological_consultation"), 2)
+        "ear": _format_meta_field(sys_raw.get("ear") or fields.get("ear"), 2),
+        "nose": _format_meta_field(sys_raw.get("nose") or fields.get("nose"), 2),
+        "throat": _format_meta_field(sys_raw.get("throat") or fields.get("throat"), 2),
+        "respiratory_system": _format_meta_field(sys_raw.get("respiratory_system") or fields.get("rs"), 2),
+        "cardiovascular_system": _format_meta_field(sys_raw.get("cardiovascular_system") or fields.get("cvs"), 2),
+        "abdomen": _format_meta_field(sys_raw.get("abdomen") or fields.get("abdomen"), 2),
+        "central_nervous_system": _format_meta_field(sys_raw.get("central_nervous_system") or fields.get("cns"), 2),
+        "skin": _format_meta_field(sys_raw.get("skin") or fields.get("skin"), 2),
+        "hair": _format_meta_field(sys_raw.get("hair") or fields.get("hair"), 2),
+        "musculoskeletal_system": _format_meta_field(sys_raw.get("musculoskeletal_system") or fields.get("msk"), 2),
+        "others": _format_meta_field(sys_raw.get("others") or fields.get("exam_others"), 2),
+        "psychological_consultation": _format_meta_field(sys_raw.get("psychological_consultation") or fields.get("psych"), 2),
     }
 
-    # Build Group 6: vision
     vision = {
-        "vision_category": _format_meta_field(vision_raw.get("vision_category") or ("unaided" if vision_raw.get("unaided") else None), 2),
-        "distant_vision_right": _format_meta_field(vision_raw.get("distant_vision_right") or vision_raw.get("right_eye_distant_va") or vision_raw.get("right_eye"), 2),
-        "distant_vision_left": _format_meta_field(vision_raw.get("distant_vision_left") or vision_raw.get("left_eye_distant_va") or vision_raw.get("left_eye"), 2)
+        "vision_category": _format_meta_field(vision_raw.get("vision_category") or fields.get("vision_type"), 2),
+        "distant_vision_right": _format_meta_field(vision_raw.get("distant_vision_right") or fields.get("right_eye"), 2),
+        "distant_vision_left": _format_meta_field(vision_raw.get("distant_vision_left") or fields.get("left_eye"), 2),
     }
 
-    # Build Group 7: dental
     dental = {
-        "normal": _format_meta_field(dental_raw.get("normal"), 2),
-        "abnormality": _format_meta_field(dental_raw.get("abnormality"), 2),
-        "advice": _format_meta_field(dental_raw.get("advice"), 2)
+        "normal": _format_meta_field(dental_raw.get("normal") or fields.get("dental"), 2),
+        "abnormality": _format_meta_field(dental_raw.get("abnormality") or fields.get("dental_abnormality"), 2),
+        "advice": _format_meta_field(dental_raw.get("advice") or fields.get("dental_advice"), 2),
     }
 
-    # Build Group 8: referral
-    referral = {
-        "specialist_referred_to": _format_meta_field(referral_raw.get("specialist_referred_to") or data.get("referral_details"), 2),
-        "doctor_signature_present": _format_meta_field(referral_raw.get("doctor_signature_present"), 2)
+    referral_obj = {
+        "specialist_referred_to": _format_meta_field(ref_raw.get("specialist_referred_to") or fields.get("specialist"), 2),
+        "doctor_signature_present": _format_meta_field(ref_raw.get("doctor_signature_present") or fields.get("signature_present"), 2),
     }
 
     structured_record = {
@@ -302,85 +612,26 @@ def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
         "system_examination": system_examination,
         "vision": vision,
         "dental": dental,
-        "referral": referral
+        "referral": referral_obj,
     }
-
-    # Derive top-level backwards-compatible attributes
-    person_name = personal_information["full_name"]["value"] or health_assessment["patient_name"]["value"]
-    age = personal_information["age"]["value"]
-    gender = personal_information["gender"]["value"]
-    
-    # Format vitals with units if not already present
-    ht_raw = health_assessment["height_cm"]["value"]
-    height = f"{ht_raw} cm" if ht_raw and "cm" not in str(ht_raw).lower() else ht_raw
-    
-    wt_raw = health_assessment["weight_kg"]["value"]
-    weight = f"{wt_raw} kg" if wt_raw and "kg" not in str(wt_raw).lower() else wt_raw
-    
-    bp_raw = health_assessment["blood_pressure_mmhg"]["value"]
-    blood_pressure = f"{bp_raw} mmHg" if bp_raw and "mmhg" not in str(bp_raw).lower() else bp_raw
-
-    # Derive missing and uncertain fields
-    missing_fields = _clean_list(data.get("missing_fields"))
-    uncertain_fields = _clean_list(data.get("uncertain_fields"))
-
-    # Automatically identify missing core fields if not flagged
-    core_map = {
-        "person_name": person_name,
-        "age": age,
-        "height": height,
-        "weight": weight,
-        "blood_pressure": blood_pressure
-    }
-    for f_name, f_val in core_map.items():
-        if f_val is None and f_name not in missing_fields:
-            missing_fields.append(f_name)
-
-    # Build examination details summary
-    exam_parts = []
-    pulse = health_assessment["pulse_bpm"]["value"]
-    if pulse: exam_parts.append(f"Pulse: {pulse} bpm")
-    rbs = health_assessment["random_blood_sugar_mgdl"]["value"]
-    if rbs: exam_parts.append(f"RBS: {rbs} mg/dL")
-    waist = health_assessment["waist_circumference_cm"]["value"]
-    if waist: exam_parts.append(f"Waist: {waist} cm")
-
-    # General signs
-    gen_signs = []
-    for sign in ("pallor", "lymphadenopathy", "deformity", "icterus", "cyanosis", "edema", "clubbing"):
-        val = health_assessment[sign]["value"]
-        if val and str(val).lower() not in ("no", "unchecked", "none"):
-            gen_signs.append(f"{sign.capitalize()}: {val}")
-    if gen_signs:
-        exam_parts.append("General Signs: " + ", ".join(gen_signs))
-
-    # Systemic findings
-    sys_findings = []
-    for sys_name, sys_meta in system_examination.items():
-        if sys_meta["value"] == "abnormal" or sys_meta["details"]:
-            sys_findings.append(f"{sys_name.replace('_', ' ').title()}: {sys_meta['details'] or 'Abnormal'}")
-    if sys_findings:
-        exam_parts.append("Systemic: " + "; ".join(sys_findings))
-    elif not exam_parts:
-        exam_parts.append("Systemic examination completed.")
-
-    examination_details = "; ".join(exam_parts)
-    referral_details = referral["specialist_referred_to"]["value"]
-
-    extraction_notes = _clean_str(data.get("extraction_notes")) or "Health screening document parsed successfully."
 
     return {
-        "person_name": person_name,
-        "age": age,
+        "person_name": full_name,
+        "age": str(age) if age is not None else None,
         "gender": gender,
-        "height": height,
-        "weight": weight,
-        "blood_pressure": blood_pressure,
+        "height": height_display,
+        "weight": weight_display,
+        "blood_pressure": bp_display,
         "examination_details": examination_details,
-        "referral_details": referral_details,
+        "referral_details": referral,
+        "bmi": flags_meta["calculated_bmi"],
+        "fields": fields,
+        "flags": flags,
+        "flag_details": flags_meta,
         "missing_fields": missing_fields,
         "uncertain_fields": uncertain_fields,
-        "extraction_notes": extraction_notes,
+        "status": status,
+        "schema_valid": valid,
         "structured_record": structured_record,
         "personal_information": personal_information,
         "medical_history": medical_history,
@@ -389,5 +640,154 @@ def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
         "system_examination": system_examination,
         "vision": vision,
         "dental": dental,
-        "referral": referral
+        "referral": referral_obj
     }
+
+
+def extract(
+    student_form_bytes: bytes,
+    health_assessment_bytes: bytes,
+    camp_id: str,
+    record_id: Optional[str] = None,
+    org_id: str = "org_default",
+    db_path: Optional[str] = None
+) -> Dict[str, Any]:
+    """Phase 1 Single AI Function with Phase 3 Quota Reservation & Deduplication.
+    
+    Flow:
+    1. Check 24h identical image hash -> return cached result if match (0 AI calls, 0 quota used).
+    2. Check 24h record re-scan -> allow free re-scan without charging extra quota.
+    3. Atomically reserve 1 paper in orgs table. If zero rows updated, fail fast (HTTP 402).
+    4. Call Gemini vision extractor (gemini-3.6-flash).
+    5. Evaluate server-side confidence and clinical plausibility flags.
+    6. If escalation triggers (3+ low-confidence, critical measurement error, or unparseable JSON),
+       re-run once on gemini-3.1-pro-preview and log both calls against the paper.
+    7. On any unrecoverable failure, release the reserved paper (failed reads are free).
+    8. Store hash for 24h reuse and return structured extraction.
+    """
+    from backend import database
+    from .gemini_service import GeminiService
+    target_db = db_path or database.DEFAULT_DB_PATH
+
+    if not record_id:
+        record_id = f"rec_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
+
+    # Step 1: Duplicate image fingerprint check (24-hour cache reuse)
+    img_hash = database.compute_scan_hash(student_form_bytes, health_assessment_bytes)
+    cached = database.get_recent_scan_by_hash(img_hash, org_id=org_id, max_hours=24, db_path=target_db)
+    if cached:
+        logger.info("Identical images scanned within 24h; returning cached extraction without calling AI")
+        cached["cached"] = True
+        if "record_id" not in cached:
+            cached["record_id"] = cached.get("original_record_id") or record_id
+        return cached
+
+    # Step 2: Check free re-scan within 24 hours (limited to 3 free re-scans per record in 24 hours)
+    is_free_rescan = False
+    if record_id and database.is_recent_record_rescan(record_id, max_hours=24, db_path=target_db):
+        rescan_cnt = database.get_record_rescan_count(record_id, max_hours=24, db_path=target_db)
+        if rescan_cnt < 3:
+            is_free_rescan = True
+            database.log_usage_ledger(
+                org_id=org_id,
+                record_id=record_id,
+                action="free_rescan",
+                notes=f"Free re-scan {rescan_cnt + 1}/3 within 24 hours",
+                db_path=target_db
+            )
+
+    # Step 3: Atomic reservation if not a free re-scan
+    if not is_free_rescan:
+        reserved, res_code, papers_left = database.reserve_paper(org_id=org_id, record_id=record_id, db_path=target_db)
+        if not reserved:
+            if res_code == "ai_paused":
+                return {
+                    "success": False,
+                    "error": "AI processing is currently paused by administrator kill switch.",
+                    "code": "AI_PAUSED",
+                    "http_status": 403
+                }
+            if res_code == "daily_cap_reached":
+                return {
+                    "success": False,
+                    "error": "Daily scan cap reached for your organization.",
+                    "code": "DAILY_CAP_REACHED",
+                    "http_status": 429
+                }
+            return {
+                "success": False,
+                "error": "Quota limit reached for your organization plan. Please purchase add-on papers.",
+                "code": "LIMIT_REACHED",
+                "http_status": 402
+            }
+
+    # Step 4: Call AI Service (Gemini with escalation)
+    service = GeminiService()
+    if not service.is_configured():
+        if not is_free_rescan:
+            database.release_paper(org_id=org_id, record_id=record_id, reason="ai_not_configured", db_path=target_db)
+        return {
+            "success": False,
+            "error": "Gemini API key is not configured.",
+            "code": "AI_NOT_CONFIGURED",
+            "http_status": 503
+        }
+
+    try:
+        extraction_res = service.extract_from_images(
+            student_form_bytes=student_form_bytes,
+            student_form_mime="image/jpeg",
+            health_assessment_bytes=health_assessment_bytes,
+            health_assessment_mime="image/jpeg"
+        )
+    except Exception as e:
+        logger.exception("AI extraction exception")
+        if not is_free_rescan:
+            database.release_paper(org_id=org_id, record_id=record_id, reason="exception", db_path=target_db)
+        return {
+            "success": False,
+            "error": f"AI service error: {str(e)}",
+            "code": "AI_ERROR",
+            "http_status": 500
+        }
+
+    # Log calls in usage_ledger
+    calls = extraction_res.get("calls", [])
+    for call_info in calls:
+        if call_info:
+            action = "escalation_call" if call_info.get("model") == service.fallback_model else "extract_call"
+            database.log_usage_ledger(
+                org_id=org_id,
+                record_id=record_id,
+                action=action,
+                model=call_info.get("model"),
+                tokens_in=call_info.get("tokens_in", 0),
+                tokens_out=call_info.get("tokens_out", 0),
+                tokens_think=call_info.get("tokens_think", 0),
+                seconds=call_info.get("seconds", 0.0),
+                cost_rs=call_info.get("cost_rs", 0.0),
+                db_path=target_db
+            )
+
+    if not extraction_res.get("success"):
+        # Failed reads are free: release paper
+        if not is_free_rescan:
+            database.release_paper(org_id=org_id, record_id=record_id, reason="extraction_failed", db_path=target_db)
+        extraction_res["status"] = "needs_manual"
+        extraction_res["http_status"] = 422
+        return extraction_res
+
+    extraction_res["record_id"] = record_id
+    extraction_res["hash"] = img_hash
+    extraction_res["http_status"] = 200
+
+    # Cache scan hash for 24-hour duplicate suppression
+    if record_id:
+        database.save_scan_hash(img_hash, record_id, org_id, extraction_res, db_path=target_db)
+
+    return extraction_res
+
+
+# Alias for explicit import
+ai_extract = extract
+

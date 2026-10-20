@@ -44,6 +44,38 @@ export const api = {
     return request('/api/stats');
   },
 
+  async sendOtp(phone) {
+    return request('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+  },
+
+  async login(payload) {
+    return request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async verifyCommunity(code) {
+    return request('/api/community/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+  },
+
+  async createCommunity(data) {
+    return request('/api/community/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
   async getCamps() {
     return request('/api/camps');
   },
@@ -87,7 +119,7 @@ export const api = {
     });
   },
 
-  async reviewRecord(recordId, updateData, reviewer = 'Dr. Priya (Demo)') {
+  async reviewRecord(recordId, updateData, reviewer = 'Attending Physician') {
     return request(`/api/records/${encodeURIComponent(recordId)}/review`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -95,9 +127,115 @@ export const api = {
     });
   },
 
-  async resetDemoData() {
-    return request('/api/reset-demo', {
+  async clearAllData() {
+    return request('/api/clear-data', {
       method: 'POST'
+    });
+  },
+
+  async resetDemoData() {
+    return this.clearAllData();
+  },
+
+  async getCampAnalytics(campId = null) {
+    const qs = campId ? `?camp_id=${encodeURIComponent(campId)}` : '';
+    return request(`/api/analytics${qs}`);
+  },
+
+  async eraseRecord(recordId) {
+    return request(`/api/records/${encodeURIComponent(recordId)}/erase`, {
+      method: 'POST'
+    });
+  },
+
+  async checkDuplicate(campId, personName, phone = '', excludeId = null) {
+    return request('/api/records/check-duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        camp_id: campId,
+        person_name: personName,
+        phone,
+        exclude_id: excludeId
+      })
+    });
+  },
+
+  async syncSupabase() {
+    return request('/api/sync/supabase', {
+      method: 'POST'
+    });
+  },
+
+  async getAdminBilling() {
+    return request('/api/admin/billing');
+  },
+
+  async lockRecord(recordId, doctorName = 'Attending Physician') {
+    return request(`/api/records/${encodeURIComponent(recordId)}/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor_name: doctorName })
+    });
+  },
+
+  async unlockRecord(recordId, doctorName = 'Attending Physician') {
+    return request(`/api/records/${encodeURIComponent(recordId)}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor_name: doctorName })
+    });
+  },
+
+  async approveRecord(recordId, approvedBy = 'Attending Physician') {
+    return request(`/api/records/${encodeURIComponent(recordId)}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved_by: approvedBy })
+    });
+  },
+
+  async getUsage() {
+    return request('/api/usage', {
+      headers: { 'X-Admin-Key': 'admin_secret_key' }
+    });
+  },
+
+  async getUsageLedger(page = 1, limit = 50) {
+    return request(`/api/usage/ledger?page=${page}&limit=${limit}`, {
+      headers: { 'X-Admin-Key': 'admin_secret_key' }
+    });
+  },
+
+  async createBillingOrder(papers = 1000) {
+    return request('/api/billing/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ papers })
+    });
+  },
+
+  async getInvoices() {
+    return request('/api/billing/invoices');
+  },
+
+  getInvoiceDownloadUrl(invoiceNumber) {
+    return `${API_BASE}/api/billing/invoices/${encodeURIComponent(invoiceNumber)}/download`;
+  },
+
+  async setAiPause(orgId = null, paused = true) {
+    return request('/api/admin/ai-pause', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': 'admin_secret_key' },
+      body: JSON.stringify({ org_id: orgId, paused })
+    });
+  },
+
+  async cleanupExpiredReservations(expiryDays = 7) {
+    return request('/api/admin/cleanup-expired-reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': 'admin_secret_key' },
+      body: JSON.stringify({ expiry_days: expiryDays })
     });
   },
 

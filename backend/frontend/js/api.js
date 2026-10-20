@@ -44,6 +44,38 @@ export const api = {
     return request('/api/stats');
   },
 
+  async sendOtp(phone) {
+    return request('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+  },
+
+  async login(payload) {
+    return request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async verifyCommunity(code) {
+    return request('/api/community/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+  },
+
+  async createCommunity(data) {
+    return request('/api/community/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
   async getCamps() {
     return request('/api/camps');
   },
@@ -87,7 +119,7 @@ export const api = {
     });
   },
 
-  async reviewRecord(recordId, updateData, reviewer = 'Dr. Priya (Demo)') {
+  async reviewRecord(recordId, updateData, reviewer = 'Attending Physician') {
     return request(`/api/records/${encodeURIComponent(recordId)}/review`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -95,9 +127,63 @@ export const api = {
     });
   },
 
-  async resetDemoData() {
-    return request('/api/reset-demo', {
+  async clearAllData() {
+    return request('/api/clear-data', {
       method: 'POST'
+    });
+  },
+
+  async resetDemoData() {
+    return this.clearAllData();
+  },
+
+  async getCampAnalytics(campId = null) {
+    const qs = campId ? `?camp_id=${encodeURIComponent(campId)}` : '';
+    return request(`/api/analytics${qs}`);
+  },
+
+  async eraseRecord(recordId) {
+    return request(`/api/records/${encodeURIComponent(recordId)}/erase`, {
+      method: 'POST'
+    });
+  },
+
+  async checkDuplicate(campId, personName, phone = '', excludeId = null) {
+    return request('/api/records/check-duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        camp_id: campId,
+        person_name: personName,
+        phone,
+        exclude_id: excludeId
+      })
+    });
+  },
+
+  async syncSupabase() {
+    return request('/api/sync/supabase', {
+      method: 'POST'
+    });
+  },
+
+  async getAdminBilling() {
+    return request('/api/admin/billing');
+  },
+
+  async lockRecord(recordId, doctorName = 'Attending Physician') {
+    return request(`/api/records/${encodeURIComponent(recordId)}/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor_name: doctorName })
+    });
+  },
+
+  async unlockRecord(recordId, doctorName = 'Attending Physician') {
+    return request(`/api/records/${encodeURIComponent(recordId)}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor_name: doctorName })
     });
   },
 
