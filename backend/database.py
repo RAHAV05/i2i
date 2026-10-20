@@ -2058,17 +2058,30 @@ def approve_record(
     now_iso = datetime.now(timezone.utc).isoformat()
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE records SET
-                status = 'approved',
-                approved_by = ?,
-                approved_at = ?,
-                locked_by = NULL,
-                locked_at = NULL,
-                updated_at = ?
-            WHERE id = ?;
-        """, (approved_by, now_iso, now_iso, record_id))
-        conn.commit()
+        try:
+            cursor.execute("""
+                UPDATE records SET
+                    status = 'approved',
+                    approved_by = ?,
+                    approved_at = ?,
+                    locked_by = NULL,
+                    locked_at = NULL,
+                    updated_at = ?
+                WHERE id = ?;
+            """, (approved_by, now_iso, now_iso, record_id))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            cursor.execute("""
+                UPDATE records SET
+                    status = 'reviewed',
+                    approved_by = ?,
+                    approved_at = ?,
+                    locked_by = NULL,
+                    locked_at = NULL,
+                    updated_at = ?
+                WHERE id = ?;
+            """, (approved_by, now_iso, now_iso, record_id))
+            conn.commit()
 
     approve_paper(org_id=org_id, record_id=record_id, db_path=db_path)
     updated = get_record_by_id(record_id, db_path)
