@@ -115,39 +115,40 @@ def _clean_list(val: Any) -> List[str]:
 
 
 
-def _format_meta_field(raw: Any, default_page: int = 1) -> Dict[str, Any]:
+def _format_meta_field(raw: Any, default_page: int = 1, details: Any = None) -> Dict[str, Any]:
     """Wrap raw data into standard field metadata structure:
     {value, confidence, status, source_page, notes, details}
     """
+    clean_d = _clean_str(details)
     if isinstance(raw, list) and len(raw) >= 2:
         val, conf = raw[0], raw[1]
         clean_v = _clean_str(val) if isinstance(val, (str, int, float)) else val
         return {
             "value": clean_v,
             "confidence": min(1.0, max(0.0, float(conf))),
-            "status": "extracted" if clean_v is not None else "missing",
+            "status": "extracted" if (clean_v is not None or clean_d is not None) else "missing",
             "source_page": default_page,
             "notes": None,
-            "details": None
+            "details": clean_d
         }
 
     if isinstance(raw, dict) and "value" in raw:
         val = raw.get("value")
         clean_v = _clean_str(val) if isinstance(val, (str, int, float)) else val
         conf = float(raw.get("confidence", 0.95)) if clean_v is not None else 0.0
-        stat = raw.get("status") or ("extracted" if clean_v is not None else "missing")
+        stat = raw.get("status") or ("extracted" if (clean_v is not None or clean_d is not None) else "missing")
         return {
             "value": clean_v,
             "confidence": min(1.0, max(0.0, conf)),
             "status": stat,
             "source_page": int(raw.get("source_page", default_page)),
             "notes": _clean_str(raw.get("notes")),
-            "details": _clean_str(raw.get("details")) or _clean_str(raw.get("relationship"))
+            "details": clean_d or _clean_str(raw.get("details")) or _clean_str(raw.get("relationship"))
         }
 
     if isinstance(raw, dict):
         status_val = raw.get("status") or raw.get("selection")
-        details_val = raw.get("details") or raw.get("specify") or raw.get("relationship")
+        details_val = details or raw.get("details") or raw.get("specify") or raw.get("relationship")
         clean_v = _clean_str(status_val) if status_val is not None else None
         clean_d = _clean_str(details_val)
         stat = "extracted" if (clean_v or clean_d) else "missing"
@@ -161,14 +162,14 @@ def _format_meta_field(raw: Any, default_page: int = 1) -> Dict[str, Any]:
         }
 
     clean_v = _clean_str(raw)
-    stat = "extracted" if clean_v is not None else "missing"
+    stat = "extracted" if (clean_v is not None or clean_d is not None) else "missing"
     return {
         "value": clean_v,
         "confidence": 0.95 if clean_v is not None else 0.0,
         "status": stat,
         "source_page": default_page,
         "notes": None,
-        "details": None
+        "details": clean_d
     }
 
 
@@ -585,29 +586,46 @@ def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
         "signature_present": _format_meta_field(p_info_raw.get("signature_present") or fields.get("signature_present"), 1),
     }
 
+    def _fval(*keys: str) -> Optional[List[Any]]:
+        for k in keys:
+            if k in fields and fields[k] is not None:
+                return fields[k]
+        return None
+
+    def _fdet(*keys: str) -> Optional[str]:
+        for k in keys:
+            item = fields.get(k)
+            if isinstance(item, list) and len(item) > 0 and item[0] is not None:
+                return _clean_str(item[0])
+            elif item is not None and not isinstance(item, list):
+                cs = _clean_str(item)
+                if cs is not None:
+                    return cs
+        return None
+
     medical_history = {
-        "known_allergies": _format_meta_field(med_hist_raw.get("known_allergies") or fields.get("allergy"), 1),
-        "abdominal_pain_indigestion_constipation": _format_meta_field(med_hist_raw.get("abdominal_pain_indigestion_constipation") or fields.get("abdominal"), 1),
-        "irregular_pcod_menopause": _format_meta_field(med_hist_raw.get("irregular_pcod_menopause") or fields.get("menstrual"), 1),
-        "skin_hair_ear_nose_problems": _format_meta_field(med_hist_raw.get("skin_hair_ear_nose_problems") or fields.get("skin_ear_nose"), 1),
-        "current_previous_medications": _format_meta_field(med_hist_raw.get("current_previous_medications") or fields.get("medications"), 1),
-        "previous_surgery_hospitalization": _format_meta_field(med_hist_raw.get("previous_surgery_hospitalization") or fields.get("surgery"), 1),
-        "social_history": _format_meta_field(med_hist_raw.get("social_history") or fields.get("social"), 1),
-        "physical_activity": _format_meta_field(med_hist_raw.get("physical_activity") or fields.get("activity"), 1),
-        "other_medical_issues": _format_meta_field(med_hist_raw.get("other_medical_issues") or fields.get("other_issues"), 1),
-        "immediate_family_count": _format_meta_field(med_hist_raw.get("immediate_family_count") or fields.get("family_members"), 1),
-        "personal_physician": _format_meta_field(med_hist_raw.get("personal_physician") or fields.get("physician"), 1),
+        "known_allergies": _format_meta_field(med_hist_raw.get("known_allergies") or _fval("known_allergies", "allergy", "any_known_allergy"), 1, details=_fdet("allergy_d", "known_allergies_details")),
+        "abdominal_pain_indigestion_constipation": _format_meta_field(med_hist_raw.get("abdominal_pain_indigestion_constipation") or _fval("abdominal_pain_indigestion_constipation", "abdominal", "abdominal_pain"), 1, details=_fdet("abdominal_d", "abdominal_pain_d")),
+        "irregular_pcod_menopause": _format_meta_field(med_hist_raw.get("irregular_pcod_menopause") or _fval("irregular_pcod_menopause", "menstrual", "pcod"), 1, details=_fdet("menstrual_d")),
+        "skin_hair_ear_nose_problems": _format_meta_field(med_hist_raw.get("skin_hair_ear_nose_problems") or _fval("skin_hair_ear_nose_problems", "skin_ear_nose", "skin_hair_ear_nose_problem"), 1, details=_fdet("skin_ear_nose_d")),
+        "current_previous_medications": _format_meta_field(med_hist_raw.get("current_previous_medications") or _fval("current_previous_medications", "medications", "any_current_previous_medications"), 1, details=_fdet("medications_d")),
+        "previous_surgery_hospitalization": _format_meta_field(med_hist_raw.get("previous_surgery_hospitalization") or _fval("previous_surgery_hospitalization", "surgery", "any_previous_surgery_hospitalization"), 1, details=_fdet("surgery_d")),
+        "social_history": _format_meta_field(med_hist_raw.get("social_history") or _fval("social_history", "social"), 1, details=_fdet("social_d")),
+        "physical_activity": _format_meta_field(med_hist_raw.get("physical_activity") or _fval("physical_activity", "activity"), 1, details=_fdet("activity_d")),
+        "other_medical_issues": _format_meta_field(med_hist_raw.get("other_medical_issues") or _fval("other_medical_issues", "other_issues"), 1),
+        "immediate_family_count": _format_meta_field(med_hist_raw.get("immediate_family_count") or _fval("immediate_family_count", "family_members"), 1),
+        "personal_physician": _format_meta_field(med_hist_raw.get("personal_physician") or _fval("personal_physician", "physician"), 1),
     }
 
     family_history = {
-        "thyroid": _format_meta_field(fam_hist_raw.get("thyroid") or fields.get("fh_thyroid"), 1),
-        "diabetes": _format_meta_field(fam_hist_raw.get("diabetes") or fields.get("fh_diabetes"), 1),
-        "heart_disease": _format_meta_field(fam_hist_raw.get("heart_disease") or fields.get("fh_heart"), 1),
-        "hypertension": _format_meta_field(fam_hist_raw.get("hypertension") or fields.get("fh_hypertension"), 1),
-        "cancer": _format_meta_field(fam_hist_raw.get("cancer") or fields.get("fh_cancer"), 1),
-        "epilepsy": _format_meta_field(fam_hist_raw.get("epilepsy") or fields.get("fh_epilepsy"), 1),
-        "asthma": _format_meta_field(fam_hist_raw.get("asthma") or fields.get("fh_asthma"), 1),
-        "other_conditions": _format_meta_field(fam_hist_raw.get("other_conditions") or fields.get("fh_others"), 1),
+        "thyroid": _format_meta_field(fam_hist_raw.get("thyroid") or _fval("thyroid", "fh_thyroid"), 1, details=_fdet("fh_thyroid_d")),
+        "diabetes": _format_meta_field(fam_hist_raw.get("diabetes") or _fval("diabetes", "fh_diabetes"), 1, details=_fdet("fh_diabetes_d")),
+        "heart_disease": _format_meta_field(fam_hist_raw.get("heart_disease") or _fval("heart_disease", "fh_heart"), 1, details=_fdet("fh_heart_d")),
+        "hypertension": _format_meta_field(fam_hist_raw.get("hypertension") or _fval("hypertension", "fh_hypertension"), 1, details=_fdet("fh_hypertension_d")),
+        "cancer": _format_meta_field(fam_hist_raw.get("cancer") or _fval("cancer", "fh_cancer"), 1, details=_fdet("fh_cancer_d")),
+        "epilepsy": _format_meta_field(fam_hist_raw.get("epilepsy") or _fval("epilepsy", "fh_epilepsy"), 1, details=_fdet("fh_epilepsy_d")),
+        "asthma": _format_meta_field(fam_hist_raw.get("asthma") or _fval("asthma", "fh_asthma"), 1, details=_fdet("fh_asthma_d")),
+        "other_conditions": _format_meta_field(fam_hist_raw.get("other_conditions") or _fval("other_conditions", "fh_others"), 1, details=_fdet("fh_others_d")),
     }
 
     health_assessment = {
@@ -631,18 +649,18 @@ def validate_and_sanitize_extraction(raw_payload: Any) -> Dict[str, Any]:
     }
 
     system_examination = {
-        "ear": _format_meta_field(sys_raw.get("ear") or fields.get("ear"), 2),
-        "nose": _format_meta_field(sys_raw.get("nose") or fields.get("nose"), 2),
-        "throat": _format_meta_field(sys_raw.get("throat") or fields.get("throat"), 2),
-        "respiratory_system": _format_meta_field(sys_raw.get("respiratory_system") or fields.get("rs"), 2),
-        "cardiovascular_system": _format_meta_field(sys_raw.get("cardiovascular_system") or fields.get("cvs"), 2),
-        "abdomen": _format_meta_field(sys_raw.get("abdomen") or fields.get("abdomen"), 2),
-        "central_nervous_system": _format_meta_field(sys_raw.get("central_nervous_system") or fields.get("cns"), 2),
-        "skin": _format_meta_field(sys_raw.get("skin") or fields.get("skin"), 2),
-        "hair": _format_meta_field(sys_raw.get("hair") or fields.get("hair"), 2),
-        "musculoskeletal_system": _format_meta_field(sys_raw.get("musculoskeletal_system") or fields.get("msk"), 2),
-        "others": _format_meta_field(sys_raw.get("others") or fields.get("exam_others"), 2),
-        "psychological_consultation": _format_meta_field(sys_raw.get("psychological_consultation") or fields.get("psych"), 2),
+        "ear": _format_meta_field(sys_raw.get("ear") or _fval("ear"), 2, details=_fdet("ear_d")),
+        "nose": _format_meta_field(sys_raw.get("nose") or _fval("nose"), 2, details=_fdet("nose_d")),
+        "throat": _format_meta_field(sys_raw.get("throat") or _fval("throat"), 2, details=_fdet("throat_d")),
+        "respiratory_system": _format_meta_field(sys_raw.get("respiratory_system") or _fval("respiratory_system", "rs"), 2, details=_fdet("rs_d")),
+        "cardiovascular_system": _format_meta_field(sys_raw.get("cardiovascular_system") or _fval("cardiovascular_system", "cvs"), 2, details=_fdet("cvs_d")),
+        "abdomen": _format_meta_field(sys_raw.get("abdomen") or _fval("abdomen"), 2, details=_fdet("abdomen_d")),
+        "central_nervous_system": _format_meta_field(sys_raw.get("central_nervous_system") or _fval("central_nervous_system", "cns"), 2, details=_fdet("cns_d")),
+        "skin": _format_meta_field(sys_raw.get("skin") or _fval("skin"), 2, details=_fdet("skin_d")),
+        "hair": _format_meta_field(sys_raw.get("hair") or _fval("hair"), 2, details=_fdet("hair_d")),
+        "musculoskeletal_system": _format_meta_field(sys_raw.get("musculoskeletal_system") or _fval("musculoskeletal_system", "msk"), 2, details=_fdet("msk_d")),
+        "others": _format_meta_field(sys_raw.get("others") or _fval("exam_others", "others"), 2, details=_fdet("exam_others_d")),
+        "psychological_consultation": _format_meta_field(sys_raw.get("psychological_consultation") or _fval("psych", "psychological_consultation"), 2, details=_fdet("psych_d")),
     }
 
     vision = {

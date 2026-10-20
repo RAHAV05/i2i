@@ -1842,9 +1842,15 @@ def get_recent_scan_by_hash(
             delta_hours = (datetime.now(timezone.utc) - created_at).total_seconds() / 3600.0
             if delta_hours <= max_hours:
                 cached = json.loads(row["result_json"])
-                cached["duplicate_suppressed"] = True
-                cached["original_record_id"] = row["record_id"]
-                return cached
+                data_obj = cached.get("data") or cached
+                fields_obj = data_obj.get("fields") or {}
+                has_valid_fields = any(v[0] is not None for v in fields_obj.values() if isinstance(v, list) and len(v) >= 1)
+                if not has_valid_fields:
+                    has_valid_fields = any(bool(data_obj.get(k)) for k in ("person_name", "blood_pressure", "height", "weight", "age"))
+                if has_valid_fields and cached.get("success", True):
+                    cached["duplicate_suppressed"] = True
+                    cached["original_record_id"] = row["record_id"]
+                    return cached
         except Exception as e:
             logger.warning("Error reading cached scan hash: %s", e)
         return None
