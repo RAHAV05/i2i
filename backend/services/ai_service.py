@@ -203,27 +203,82 @@ def parse_and_validate_schema(raw_text: str) -> Tuple[bool, Dict[str, Any], Opti
     if not isinstance(data, dict):
         return False, {}, "Model output is not a JSON object"
 
-    # Normalize fields to [value, confidence]
+    # Normalize fields to [value, confidence], supporting both flat and nested schemas
     normalized: Dict[str, List[Any]] = {}
-    for key, val in data.items():
-        if isinstance(val, list) and len(val) >= 2:
-            v = val[0]
-            try:
-                c = float(val[1])
-            except (ValueError, TypeError):
-                c = 0.5
-            normalized[key] = [_clean_str(v), min(1.0, max(0.0, c))]
-        elif isinstance(val, dict):
-            # Nested structure support
-            v = val.get("value")
-            try:
-                c = float(val.get("confidence", 0.95))
-            except (ValueError, TypeError):
-                c = 0.5
-            normalized[key] = [_clean_str(v), min(1.0, max(0.0, c))]
-        else:
-            clean_v = _clean_str(val)
-            normalized[key] = [clean_v, 0.95 if clean_v is not None else 1.0]
+
+    def _extract_fields_recursive(d: Any, target: Dict[str, List[Any]], prefix: str = ""):
+        if not isinstance(d, dict):
+            return
+        for k, v in d.items():
+            if isinstance(v, list) and len(v) >= 2 and not isinstance(v[0], (dict, list)):
+                val = _clean_str(v[0])
+                try:
+                    conf = float(v[1])
+                except (ValueError, TypeError):
+                    conf = 0.95
+                target[k] = [val, min(1.0, max(0.0, conf))]
+            elif isinstance(v, dict):
+                if "value" in v and "confidence" in v:
+                    val = _clean_str(v.get("value"))
+                    try:
+                        conf = float(v.get("confidence", 0.95))
+                    except (ValueError, TypeError):
+                        conf = 0.95
+                    target[k] = [val, min(1.0, max(0.0, conf))]
+                elif "yes_no" in v:
+                    yn_raw = v.get("yes_no")
+                    if isinstance(yn_raw, list) and len(yn_raw) >= 1:
+                        yn_val = _clean_str(yn_raw[0])
+                        conf = float(yn_raw[1]) if len(yn_raw) >= 2 else 0.95
+                    else:
+                        yn_val = _clean_str(yn_raw)
+                        conf = 0.95
+                    target[k] = [yn_val, min(1.0, max(0.0, conf))]
+                    spec_raw = v.get("specify") or v.get("details")
+                    if spec_raw:
+                        spec_val = _clean_str(spec_raw[0] if isinstance(spec_raw, list) else spec_raw)
+                        if spec_val:
+                            target[f"{k}_d"] = [spec_val, min(1.0, max(0.0, conf))]
+                else:
+                    _extract_fields_recursive(v, target, prefix=f"{prefix}{k}_")
+            elif isinstance(v, (str, int, float)) or v is None:
+                clean_v = _clean_str(v)
+                target[k] = [clean_v, 0.95 if clean_v is not None else 1.0]
+
+    _extract_fields_recursive(data, normalized)
+
+    # Standardize field aliases across sheets & model outputs
+    alias_map = {
+        "bp_mmhg": ["bp", "blood_pressure", "blood_pressure_mmhg"],
+        "bp": ["blood_pressure", "blood_pressure_mmhg"],
+        "pulse_bpm": ["pulse", "pulse_bpm"],
+        "pulse": ["pulse_bpm"],
+        "height_cm": ["height", "height_cm"],
+        "height": ["height_cm"],
+        "weight_kg": ["weight", "weight_kg"],
+        "weight": ["weight_kg"],
+        "rbs_mg_dl": ["rbs", "random_blood_sugar_mgdl"],
+        "rbs": ["random_blood_sugar_mgdl"],
+        "date_of_examination": ["exam_date", "examination_date"],
+        "exam_date": ["examination_date"],
+        "waist_circumference_cm": ["waist_cm", "waist_circumference_cm"],
+        "waist_cm": ["waist_circumference_cm"],
+        "patient_name": ["full_name", "person_name"],
+        "student_name": ["full_name", "person_name"],
+        "name": ["full_name", "person_name"],
+        "person_name": ["full_name"],
+        "distant_va_right": ["right_eye", "distant_vision_right"],
+        "distant_va_left": ["left_eye", "distant_vision_left"],
+        "any_known_allergy": ["allergy"],
+        "any_current_previous_medications": ["medications"],
+        "any_previous_surgery_hospitalization": ["surgery"],
+        "skin_hair_ear_nose_problem": ["skin_ear_nose"],
+    }
+    for orig_k, aliases in list(alias_map.items()):
+        if orig_k in normalized:
+            for al in aliases:
+                if al not in normalized:
+                    normalized[al] = normalized[orig_k]
 
     return True, normalized, None
 
@@ -244,13 +299,16 @@ def apply_server_side_flags(fields: Dict[str, List[Any]]) -> Dict[str, Any]:
     missing_mandatory: List[str] = []
 
     # 1. Confidence checks
-    # IMPORTANT: Never flag blank fields with confidence 1! Only check confidence < threshold
+    # IMPORTANT: Never flag blank fields with confidence 1! Only check confidence < threshold on actual text/marks
     for key, item in fields.items():
         val, conf = item[0], item[1]
         threshold = FLAG_CONFIDENCE_MEASURE if key in CRITICAL_MEASUREMENT_KEYS else FLAG_CONFIDENCE
-        if conf < threshold:
+        if val is not None and conf < threshold:
             low_confidence.append(key)
             flags[key] = f"Low confidence ({conf:.2f} < {threshold})"
+        elif val is None and conf <= 0.5:
+            low_confidence.append(key)
+            flags[key] = f"Illegible field mark ({conf:.2f} <= 0.5)"
 
     # 2. Missing Mandatory Fields (full_name, dob)
     name_val = fields.get("full_name", [None, 0])[0] or fields.get("person_name", [None, 0])[0]

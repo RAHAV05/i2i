@@ -147,19 +147,19 @@ class GeminiService(AIService):
                     if k in ("uncertain_fields", "missing_fields", "schema_valid", "flag_details", "flags"):
                         continue
                     temp_fields[k] = [v, 1.0]
-                # Any field in uncertain_fields gets low confidence (0.50 < FLAG_CONFIDENCE)
+                # Any field in uncertain_fields gets low confidence (0.40 < FLAG_CONFIDENCE and < 0.50)
                 for uf in sanitized_data.get("uncertain_fields", []):
-                    temp_fields[uf] = [temp_fields.get(uf, [None, 0.50])[0], 0.50]
+                    temp_fields[uf] = [temp_fields.get(uf, [None, 0.40])[0], 0.40]
                     if uf in ("blood_pressure", "blood_pressure_mmhg"):
-                        temp_fields["bp"] = [temp_fields.get("bp", [temp_fields[uf][0], 0.50])[0], 0.50]
+                        temp_fields["bp"] = [temp_fields.get("bp", [temp_fields[uf][0], 0.40])[0], 0.40]
                     elif uf in ("pulse_bpm", "pulse"):
-                        temp_fields["pulse"] = [temp_fields.get("pulse", [temp_fields[uf][0], 0.50])[0], 0.50]
+                        temp_fields["pulse"] = [temp_fields.get("pulse", [temp_fields[uf][0], 0.40])[0], 0.40]
                     elif uf in ("weight", "weight_kg"):
-                        temp_fields["weight_kg"] = [temp_fields.get("weight_kg", [temp_fields[uf][0], 0.50])[0], 0.50]
+                        temp_fields["weight_kg"] = [temp_fields.get("weight_kg", [temp_fields[uf][0], 0.40])[0], 0.40]
                     elif uf in ("height", "height_cm"):
-                        temp_fields["height_cm"] = [temp_fields.get("height_cm", [temp_fields[uf][0], 0.50])[0], 0.50]
+                        temp_fields["height_cm"] = [temp_fields.get("height_cm", [temp_fields[uf][0], 0.40])[0], 0.40]
                     elif uf in ("rbs", "random_blood_sugar_mgdl"):
-                        temp_fields["rbs"] = [temp_fields.get("rbs", [temp_fields[uf][0], 0.50])[0], 0.50]
+                        temp_fields["rbs"] = [temp_fields.get("rbs", [temp_fields[uf][0], 0.40])[0], 0.40]
                 fields = temp_fields
                 flag_details = apply_server_side_flags(temp_fields)
 
