@@ -42,33 +42,30 @@ A document-scanning mobile-first hybrid application designed for clinic health-c
 ## Project Structure
 
 ```
-doc-scanner/
-├── frontend/
-│   ├── index.html           # Accessible, semantic UI with teal & light theme
-│   ├── css/
-│   │   └── styles.css       # Responsive layout, Bricolage Grotesque & Figtree fonts
-│   └── js/
-│       ├── app.js           # Main app orchestration and state management
-│       ├── scanner.js       # Real camera capture, upload, and synthetic generator
-│       └── api.js           # REST API client with error handling
-├── backend/
-│   ├── app.py               # Flask application with REST endpoints & static server
-│   ├── database.py          # SQLite connection, CRUD, and SQL aggregations
-│   ├── requirements.txt     # Python dependencies
+INK2Insights/
+├── api/                     # Vercel serverless entry point (index.py)
+├── backend/                 # Python Flask backend
+│   ├── app.py               # REST endpoints & static file serving
+│   ├── database.py          # SQLite persistence & query aggregations
+│   ├── requirements.txt     # Python backend dependencies
 │   ├── .env.example         # Template configuration
-│   ├── .env                 # Local configuration
-│   └── services/
-│       ├── ai_service.py    # AI provider interface & schema validator
-│       ├── groq_service.py  # Groq Vision implementation
-│       └── record_service.py# Business logic, review workflow & secure CSV export
-├── tests/
-│   ├── test_ai_service.py   # AI fallback, auth error, and response parsing tests
-│   ├── test_api.py          # Flask REST integration tests
-│   ├── test_database.py     # SQLite table creation, insertion, and aggregations
-│   ├── test_record_service.py # Review workflow, idempotency, and CSV injection tests
-│   └── test_validation.py   # Schema sanitization and null safety tests
+│   ├── .env                 # Local environment secrets
+│   └── services/            # AI extraction, Groq, Gemini & Record services
+├── docs/                    # Reference medical sheets & abbreviation dictionaries
+├── fixtures/                # Sample clinic intake forms for testing & calibration
+├── frontend/                # Web application UI
+│   ├── index.html           # Accessible, semantic UI with responsive theme
+│   ├── css/styles.css       # Design tokens & responsive styles
+│   ├── js/                  # App orchestration, scanner, and API client
+│   └── assets/              # Web assets (logos, heroes, loading animation)
+├── mobile/                  # React Native / Expo mobile application
+├── sample/                  # UI design benchmarks & reference media
+├── tests/                   # Pytest test suite (62 comprehensive tests)
 ├── conftest.py              # Pytest environment setup
-├── .gitignore               # Excludes secrets, venvs, DBs, and images
+├── requirements.txt         # Project-level Python dependencies
+├── vercel.json              # Vercel deployment configuration
+├── supabase_schema.sql      # Supabase cloud database schema
+├── .gitignore               # Ignored files, databases, and artifacts
 └── README.md                # Project documentation
 ```
 
@@ -137,7 +134,7 @@ The Flask backend serves both the REST endpoints and the responsive frontend app
 
 ## AI Vision Provider Architecture
 
-The AI layer is structured around an abstract service interface in [`backend/services/ai_service.py`](file:///Users/Rahav/.gemini/antigravity-ide/scratch/doc-scanner/backend/services/ai_service.py):
+The AI layer is structured around an abstract service interface in [`backend/services/ai_service.py`](backend/services/ai_service.py):
 
 ```python
 class AIService(ABC):
@@ -166,3 +163,4 @@ To add NVIDIA NIM:
 - **Zero Key Leakage**: API credentials remain strictly in the backend `.env` file and are never sent to the client.
 - **Spreadsheet Formula Injection Protection**: All exported CSV cells are sanitized against spreadsheet formula execution (`=`, `+`, `-`, `@`, `\t`, `\r`).
 - **No Long-term Image Retention**: Scanned images in this demo are processed in-memory or stored as temporary object URLs.
+# i2i
