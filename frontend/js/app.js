@@ -649,10 +649,17 @@ export async function renderHome() {
       state.selectedCampId = state.camps[0].id;
     }
 
-    // Update AI Indicator Chip
+    // Update AI Indicator Chip & Telemetry Engine Badge
     const aiChip = $('ai-chip');
+    if (statusRes) {
+      state.aiProvider = statusRes.ai_provider || 'Vision AI';
+      const engineBadge = $('telemetry-engine-badge');
+      if (engineBadge) {
+        engineBadge.textContent = `${state.aiProvider} · Ready`;
+      }
+    }
     if (aiChip && statusRes) {
-      aiChip.textContent = statusRes.ai_configured ? '● Vision AI: Active' : '○ Vision AI: Manual Mode';
+      aiChip.textContent = statusRes.ai_configured ? `● ${statusRes.ai_provider || 'Vision AI'}` : '○ Vision AI: Manual Mode';
       aiChip.style.background = statusRes.ai_configured ? 'var(--ok)' : 'var(--mist)';
       aiChip.style.color = statusRes.ai_configured ? 'var(--teal2)' : 'var(--mute)';
     }
@@ -1374,7 +1381,7 @@ export async function saveAndExtract() {
     runBtn.disabled = true;
     runBtn.innerHTML = `
       <svg class="spin" viewBox="0 0 24 24" style="width:18px;height:18px;animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="30 60"/></svg>
-      Groq Vision Transcribing Both Pages…
+      Vision AI Transcribing Both Pages…
     `;
   }
 
@@ -1419,7 +1426,7 @@ export async function saveAndExtract() {
       referral_details: ext.referral_details || '',
       missing_fields: ext.missing_fields || [],
       uncertain_fields: ext.uncertain_fields || [],
-      extraction_notes: ext.extraction_notes || 'Extracted via Groq Vision',
+      extraction_notes: ext.extraction_notes || 'Extracted via Vision AI',
       structured_record: ext.structured_record || {},
       status: 'needs_review',
       page1_preview: page1Url,
@@ -1456,7 +1463,7 @@ export async function saveAndExtract() {
       runBtn.disabled = false;
       runBtn.innerHTML = `
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        Save & Transcribe with Groq AI
+        Save & Transcribe Document Pages
       `;
     }
   }
@@ -2935,7 +2942,7 @@ export async function renderSettings() {
 
     if (status) {
       if ($('settings-ai-provider')) {
-        $('settings-ai-provider').textContent = status.ai_provider || 'Groq Vision (qwen/qwen3.8-27b)';
+        $('settings-ai-provider').textContent = status.ai_provider || 'Vision AI (Active)';
       }
       if ($('settings-ai-status')) {
         $('settings-ai-status').textContent = status.ai_configured ? 'Active API' : 'Unconfigured';
