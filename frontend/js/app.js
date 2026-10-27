@@ -1212,12 +1212,28 @@ function proceedToPairsScreen() {
     swapAlert.style.display = (p0IsP2 && p1IsP1) ? 'block' : 'none';
   }
 
-  // Populate Camp Dropdown in Pairs
+  // Populate Camp Dropdown & Datalist in Pairs
   const campSelect = $('pairs-camp-select');
+  const campDatalist = $('pairs-camp-datalist');
+  const campInput = $('pairs-camp-input');
+  const campsList = Array.isArray(state.camps) ? state.camps : [];
+  const selectedCamp = campsList.find(c => c.id === state.selectedCampId);
+  const defaultCampName = selectedCamp ? selectedCamp.name : (campsList[0] ? campsList[0].name : '');
+
+  if (campDatalist) {
+    campDatalist.innerHTML = campsList.map(c => 
+      `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`
+    ).join('');
+  }
+
   if (campSelect) {
-    campSelect.innerHTML = state.camps.map(c => 
+    campSelect.innerHTML = campsList.map(c => 
       `<option value="${c.id}" ${c.id === state.selectedCampId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
     ).join('');
+  }
+
+  if (campInput) {
+    campInput.value = defaultCampName || '';
   }
 
   if ($('pairs-person-name')) $('pairs-person-name').value = '';
@@ -1289,16 +1305,65 @@ function generatePageCanvasBlob(pageNumber) {
 export async function saveAndExtract() {
   const p1 = state.pageBlobs[0];
   const p2 = state.pageBlobs[1];
+  const campInput = $('pairs-camp-input');
   const campSelect = $('pairs-camp-select');
-  const campId = campSelect ? campSelect.value : state.selectedCampId;
+  const rawCamp = ((campInput && campInput.value) || (campSelect && campSelect.value) || '').trim();
   const nameInput = $('pairs-person-name')?.value.trim() || '';
   const err = $('pairs-err');
   const runBtn = $('extract-run-btn');
 
-  if (!campId) {
-    if (err) err.textContent = 'Please choose a health camp.';
-    return;
+  const campsList = Array.isArray(state.camps) ? state.camps : [];
+  let campId = null;
+
+  // 1. Try to match typed organization name against existing camps by ID or Name
+  if (rawCamp) {
+    const matched = campsList.find(c => 
+      c.id === rawCamp || 
+      (c.name && c.name.trim().toLowerCase() === rawCamp.toLowerCase())
+    );
+    if (matched) {
+      campId = matched.id;
+      state.selectedCampId = matched.id;
+    }
   }
+
+  // 2. If user typed a new custom organization/camp name, auto-create it on the fly
+  if (!campId && rawCamp) {
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const newCamp = await api.createCamp(rawCamp, 100, todayStr);
+      if (newCamp && newCamp.id) {
+        campId = newCamp.id;
+        state.selectedCampId = newCamp.id;
+        state.camps = [newCamp, ...campsList];
+      }
+    } catch (createErr) {
+      console.warn('Failed to auto-create camp, falling back:', createErr);
+    }
+  }
+
+  // 3. Fallback to existing selected camp or first available camp
+  if (!campId) {
+    campId = state.selectedCampId || (campsList[0] ? campsList[0].id : null);
+  }
+
+  // 4. Default fallback if absolutely no camp exists yet
+  if (!campId) {
+    try {
+      const defaultName = rawCamp || 'General Health Screening Camp';
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const newCamp = await api.createCamp(defaultName, 100, todayStr);
+      if (newCamp && newCamp.id) {
+        campId = newCamp.id;
+        state.selectedCampId = newCamp.id;
+        state.camps = [newCamp, ...campsList];
+      }
+    } catch (fallbackErr) {
+      console.warn('Default camp creation error:', fallbackErr);
+      campId = 'camp_default';
+    }
+  }
+
   if (!p1 || !p2) {
     if (err) err.textContent = 'Both Page 1 and Page 2 must be captured.';
     return;
