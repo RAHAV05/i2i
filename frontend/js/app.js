@@ -3,8 +3,9 @@
  * Connects the phone-first touch UI with Flask REST API & Vision AI.
  */
 
-import { api } from './api.js';
+import { api, offlineQueue, registerOfflineSupport } from './api.js';
 import { DocumentScanner } from './scanner.js';
+
 
 // DOM Selector Utility
 const $ = id => document.getElementById(id);
@@ -21,10 +22,16 @@ const state = {
   currentScanPage: 0, // 0 for Page 1, 1 for Page 2
   pageBlobs: [null, null], // [Blob, Blob]
   pageUrls: [null, null],  // [ObjectURL, ObjectURL]
-  recordsFilter: 'all',    // 'all' | 'needs_review' | 'reviewed'
+  recordsFilter: 'all',    // 'all' | 'needs_review' | 'reviewed' | 'high_risk'
   searchQuery: '',
   isExpandedView: false,
-  doctorName: localStorage.getItem('clinic_doctor_name') || 'Attending Physician'
+  doctorName: localStorage.getItem('clinic_doctor_name') || 'Attending Physician',
+  lastQuality: null,
+  qualityBypassed: false,
+  qualityWarningsBypassed: [],
+  offlineQueueLength: 0,   // Phase 4: encrypted offline scan count
+  missingApprovedOverride: false,
+  torchSupported: false
 };
 
 // Initialize Camera Module
@@ -109,11 +116,24 @@ export function toggleFrame() {
   toast(state.isExpandedView ? 'Switched to Expanded View' : 'Switched to Phone Frame');
 }
 
+export function initTheme() {
+  document.documentElement.setAttribute('data-theme', 'light');
+  try {
+    localStorage.removeItem('i2i_theme');
+  } catch (e) {}
+}
+
+export function toggleTheme() {
+  // Application is exclusively clinical light mode
+  document.documentElement.setAttribute('data-theme', 'light');
+}
+
 export function toast(message, isError = false) {
   const t = $('toast');
   if (!t) return;
   t.textContent = message;
-  t.style.background = isError ? 'var(--err)' : 'var(--ink)';
+  t.style.background = isError ? 'var(--err)' : 'var(--toast-bg)';
+  t.style.color = isError ? '#FFFFFF' : 'var(--toast-text)';
   t.classList.add('on');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('on'), 2800);
@@ -827,6 +847,20 @@ function getScannerInstance() {
     scanner = new DocumentScanner({
       videoEl: $('camera-video'),
       canvasEl: $('capture-canvas'),
+      onStateChanged: stateObj => {
+        const torchBtn = $('btn-toggle-torch');
+        if (torchBtn) {
+          if (stateObj.torchSupported !== undefined) {
+            torchBtn.style.display = stateObj.torchSupported ? 'inline-flex' : 'none';
+          }
+          if (stateObj.torchOn !== undefined) {
+            const torchTxt = $('torch-btn-text');
+            if (torchTxt) torchTxt.textContent = stateObj.torchOn ? 'Torch Off' : 'Torch';
+            torchBtn.style.background = stateObj.torchOn ? '#FEF3C7' : '';
+            torchBtn.style.color = stateObj.torchOn ? '#D97706' : '';
+          }
+        }
+      },
       onThumbnailsUpdated: pages => {
         const t1 = $('t1');
         const t2 = $('t2');
@@ -854,10 +888,83 @@ function getScannerInstance() {
   return scanner;
 }
 
+export async function toggleTorch() {
+  const sc = getScannerInstance();
+  const isOn = await sc.toggleTorch();
+  const btn = $('btn-toggle-torch');
+  if (btn) {
+    btn.innerHTML = isOn
+      ? '<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#F59E0B;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Torch On'
+      : '<svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Torch';
+    btn.style.color = isOn ? '#D97706' : 'var(--mute)';
+  }
+  toast(isOn ? 'Torch turned ON 🔦' : 'Torch turned OFF');
+}
+
+export function showQualityAlertModal(quality, onProceed, onRetake) {
+  state.lastQuality = quality;
+  const modal = $('modal-quality-alert');
+  const msgEl = $('quality-alert-message');
+  const lumEl = $('quality-metric-lum');
+  const sharpEl = $('quality-metric-sharp');
+  const torchBtn = $('quality-torch-btn');
+
+  if (msgEl) {
+    const issues = quality.issues && quality.issues.length ? quality.issues.join(' and ') : 'Low clarity detected';
+    msgEl.textContent = `Warning: ${issues}. Text or vitals on the paper document may be unreadable for Vision AI.`;
+  }
+  if (lumEl) lumEl.textContent = quality.avgLum !== undefined ? `${quality.avgLum} / 255` : 'N/A';
+  if (sharpEl) sharpEl.textContent = quality.blurScore !== undefined ? `${quality.blurScore}` : 'N/A';
+
+  const sc = getScannerInstance();
+  if (torchBtn) {
+    torchBtn.style.display = (sc && sc.isCameraActive) ? 'inline-block' : 'none';
+  }
+
+  window._proceedQualityCallback = onProceed;
+  window._retakeQualityCallback = onRetake;
+
+  if (modal) modal.style.display = 'flex';
+}
+
+export function retryCaptureFromAlert() {
+  const modal = $('modal-quality-alert');
+  if (modal) modal.style.display = 'none';
+  if (window._retakeQualityCallback) {
+    const cb = window._retakeQualityCallback;
+    window._retakeQualityCallback = null;
+    cb();
+  }
+}
+
+export async function turnOnTorchAndRetake() {
+  const sc = getScannerInstance();
+  await sc.toggleTorch(true);
+  retryCaptureFromAlert();
+  toast('Flashlight turned ON 🔦 Position form and capture');
+}
+
+export function bypassQualityAlert() {
+  const modal = $('modal-quality-alert');
+  if (modal) modal.style.display = 'none';
+  state.qualityBypassed = true;
+  if (state.lastQuality && state.lastQuality.issues && state.lastQuality.issues.length > 0) {
+    const pageNum = state.currentScanPage + 1;
+    state.qualityWarningsBypassed.push(`Page ${pageNum}: ${state.lastQuality.issues.join(', ')}`);
+  }
+  if (window._proceedQualityCallback) {
+    const cb = window._proceedQualityCallback;
+    window._proceedQualityCallback = null;
+    cb();
+  }
+}
+
 export async function startScan() {
   state.currentScanPage = 0;
   state.pageBlobs = [null, null];
   state.pageUrls = [null, null];
+  state.qualityBypassed = false;
+  state.qualityWarningsBypassed = [];
 
   const sc = getScannerInstance();
   sc.resetAllPages();
@@ -942,22 +1049,39 @@ export async function captureCurrentPage() {
     sc.setPageImage(state.currentScanPage, captured.blob, captured.url, `page_${state.currentScanPage + 1}.jpg`);
   }
 
-  state.pageBlobs[state.currentScanPage] = captured.blob;
-  state.pageUrls[state.currentScanPage] = captured.url;
+  const applyCapture = () => {
+    state.pageBlobs[state.currentScanPage] = captured.blob;
+    state.pageUrls[state.currentScanPage] = captured.url;
 
-  if (state.currentScanPage === 0) {
-    // Move to Page 2
-    state.currentScanPage = 1;
-    sc.currentPage = 1;
-    updateScanStepsUI();
-    toast('Page 1 captured! Now scan Page 2 (Back side)');
-  } else {
-    // Both pages captured -> Proceed to Pair Check
-    sc.stopCamera();
-    const video = $('camera-video');
-    if (video) video.style.display = 'none';
-    proceedToPairsScreen();
+    if (state.currentScanPage === 0) {
+      // Move to Page 2
+      state.currentScanPage = 1;
+      sc.currentPage = 1;
+      state.qualityBypassed = false;
+      updateScanStepsUI();
+      toast('Page 1 captured! Now scan Page 2 (Back side)');
+    } else {
+      // Both pages captured -> Proceed to Pair Check
+      sc.stopCamera();
+      const video = $('camera-video');
+      if (video) video.style.display = 'none';
+      proceedToPairsScreen();
+    }
+  };
+
+  if (captured && captured.quality && !captured.quality.ok && !state.qualityBypassed) {
+    showQualityAlertModal(
+      captured.quality,
+      () => applyCapture(),
+      () => {
+        sc.removePage(state.currentScanPage);
+        toast('Retake ready. Position camera steadily.');
+      }
+    );
+    return;
   }
+
+  applyCapture();
 }
 
 export async function onFileUploaded(event) {
@@ -967,18 +1091,35 @@ export async function onFileUploaded(event) {
   const sc = getScannerInstance();
   try {
     const res = await sc.handleFileUpload(file);
-    state.pageBlobs[state.currentScanPage] = res.blob;
-    state.pageUrls[state.currentScanPage] = res.url;
+    const applyUpload = () => {
+      state.pageBlobs[state.currentScanPage] = res.blob;
+      state.pageUrls[state.currentScanPage] = res.url;
 
-    if (state.currentScanPage === 0) {
-      state.currentScanPage = 1;
-      sc.currentPage = 1;
-      updateScanStepsUI();
-      toast('Page 1 photo uploaded! Select Page 2 photo.');
-    } else {
-      sc.stopCamera();
-      proceedToPairsScreen();
+      if (state.currentScanPage === 0) {
+        state.currentScanPage = 1;
+        sc.currentPage = 1;
+        state.qualityBypassed = false;
+        updateScanStepsUI();
+        toast('Page 1 photo uploaded! Select Page 2 photo.');
+      } else {
+        sc.stopCamera();
+        proceedToPairsScreen();
+      }
+    };
+
+    if (res && res.quality && !res.quality.ok && !state.qualityBypassed) {
+      showQualityAlertModal(
+        res.quality,
+        () => applyUpload(),
+        () => {
+          sc.removePage(state.currentScanPage);
+          toast('Please choose a clearer or better-lit photo.');
+        }
+      );
+      return;
     }
+
+    applyUpload();
   } catch (err) {
     toast(err.message, true);
   }
@@ -1022,6 +1163,33 @@ function updateScanStepsUI() {
   }
 }
 
+export function swapScanPages() {
+  const tmpBlob = state.pageBlobs[0];
+  state.pageBlobs[0] = state.pageBlobs[1];
+  state.pageBlobs[1] = tmpBlob;
+
+  const tmpUrl = state.pageUrls[0];
+  state.pageUrls[0] = state.pageUrls[1];
+  state.pageUrls[1] = tmpUrl;
+
+  const sc = getScannerInstance();
+  if (sc && sc.pages) {
+    const tmpPage = sc.pages[0];
+    sc.pages[0] = sc.pages[1];
+    sc.pages[1] = tmpPage;
+  }
+
+  const prev1 = $('pairs-p1-preview');
+  const prev2 = $('pairs-p2-preview');
+  if (prev1 && state.pageUrls[0]) prev1.style.backgroundImage = `url('${state.pageUrls[0]}')`;
+  if (prev2 && state.pageUrls[1]) prev2.style.backgroundImage = `url('${state.pageUrls[1]}')`;
+
+  const swapAlert = $('pairs-swap-alert');
+  if (swapAlert) swapAlert.style.display = 'none';
+
+  toast('Pages swapped! Slot 1 and Slot 2 exchanged. 🔀');
+}
+
 function proceedToPairsScreen() {
   const p1 = state.pageUrls[0];
   const p2 = state.pageUrls[1];
@@ -1030,6 +1198,19 @@ function proceedToPairsScreen() {
   const prev2 = $('pairs-p2-preview');
   if (prev1 && p1) prev1.style.backgroundImage = `url('${p1}')`;
   if (prev2 && p2) prev2.style.backgroundImage = `url('${p2}')`;
+
+  // Page 1 vs Page 2 Slot Swap Heuristic
+  const sc = getScannerInstance();
+  const n0 = ((sc && sc.pages && sc.pages[0] && sc.pages[0].name) || '').toLowerCase();
+  const n1 = ((sc && sc.pages && sc.pages[1] && sc.pages[1].name) || '').toLowerCase();
+  const p2Keywords = ['page2', 'page_2', 'p2', 'health', 'assessment', 'exam', 'system'];
+  const p1Keywords = ['page1', 'page_1', 'p1', 'student', 'admission', 'personal'];
+  const p0IsP2 = p2Keywords.some(k => n0.includes(k));
+  const p1IsP1 = p1Keywords.some(k => n1.includes(k));
+  const swapAlert = $('pairs-swap-alert');
+  if (swapAlert) {
+    swapAlert.style.display = (p0IsP2 && p1IsP1) ? 'block' : 'none';
+  }
 
   // Populate Camp Dropdown in Pairs
   const campSelect = $('pairs-camp-select');
@@ -1134,8 +1315,30 @@ export async function saveAndExtract() {
 
   try {
     toast('Transcribing document pages with Vision AI…');
-    const extractRes = await api.extractPages(p1, p2);
+    const extractRes = await api.extractPages(p1, p2, campId);
+
+    // ── Offline Queue sentinel: scan was encrypted + queued ──────────────
+    if (extractRes && extractRes._offline_queued) {
+      toast(extractRes.message || '📵 Scan saved to offline queue.');
+      state.offlineQueueLength = extractRes.queue_length || (state.offlineQueueLength + 1);
+      _updateOfflineBadge(state.offlineQueueLength);
+      // Reset scanner for next patient
+      if (scanner) scanner.resetAllPages();
+      state.pageBlobs = [null, null];
+      state.pageUrls = [null, null];
+      if (runBtn) {
+        runBtn.disabled = false;
+        runBtn.innerHTML = `✅ Saved Offline — Scan Next Patient`;
+      }
+      return;  // Skip normal record save flow
+    }
+    // ── End offline sentinel ──────────────────────────────────────────────
+
     const ext = (extractRes && extractRes.data) ? extractRes.data : (extractRes || {});
+
+    // Prefer permanent backend image URLs over ephemeral blob URLs
+    const page1Url = (extractRes && (extractRes.page1_url || (extractRes.data && extractRes.data.page1_url))) || state.pageUrls[0];
+    const page2Url = (extractRes && (extractRes.page2_url || (extractRes.data && extractRes.data.page2_url))) || state.pageUrls[1];
 
     // Build the record payload with extracted structured data
     const personName = nameInput || ext.person_name || 'Patient';
@@ -1154,8 +1357,9 @@ export async function saveAndExtract() {
       extraction_notes: ext.extraction_notes || 'Extracted via Groq Vision',
       structured_record: ext.structured_record || {},
       status: 'needs_review',
-      page1_preview: state.pageUrls[0],
-      page2_preview: state.pageUrls[1]
+      page1_preview: page1Url,
+      page2_preview: page2Url,
+      quality_warning_bypassed: (state.qualityWarningsBypassed && state.qualityWarningsBypassed.length > 0) ? state.qualityWarningsBypassed : []
     };
 
     const saved = await api.saveRecord(recordPayload);
@@ -1217,6 +1421,19 @@ export async function openReview(recordId) {
     const p2Img = $('review-p2-img');
     if (p1Img) p1Img.src = record.page1_preview || '';
     if (p2Img) p2Img.src = record.page2_preview || '';
+
+    // Optical Quality Bypassed Telemetry
+    const qualAlert = $('review-quality-bypassed-alert');
+    const qualMsg = $('review-quality-bypassed-msg');
+    const bypassed = record.quality_warning_bypassed || [];
+    if (qualAlert) {
+      if (Array.isArray(bypassed) && bypassed.length > 0) {
+        qualAlert.style.display = 'flex';
+        if (qualMsg) qualMsg.textContent = `Pre-flight optical warning was bypassed during intake (${bypassed.join(' · ')}). Verify all transcribed vitals against source document.`;
+      } else {
+        qualAlert.style.display = 'none';
+      }
+    }
 
     // Populate Fields from structured_record
     const sr = record.structured_record || {};
@@ -1324,12 +1541,480 @@ export async function openReview(recordId) {
     if ($('badge-bp')) $('badge-bp').style.display = uncertain.includes('blood_pressure') ? 'inline-flex' : 'none';
     if ($('badge-allergies')) $('badge-allergies').style.display = uncertain.includes('known_allergies') ? 'inline-flex' : 'none';
 
+    // Consent Gating initialization
+    const consentGiven = (record.consent_given !== 0 && record.consent_given !== false) &&
+      (getVal(p_info, 'consent_screening', '') !== 'No');
+    if ($('rev-consent-screening')) $('rev-consent-screening').checked = consentGiven;
+    onConsentChanged();
+
+    // Focused Bounding Box Crop rendering
+    renderFocusedCropSnippets(record);
+
     switchReviewTab('personal');
     go('review');
 
   } catch (err) {
     toast('Error loading record: ' + err.message, true);
   }
+}
+
+export function onConsentChanged() {
+  const isConsentGiven = $('rev-consent-screening')?.checked ?? true;
+  const alertWithheld = $('alert-consent-withheld');
+  const approveBtn = $('approve-btn');
+  if (alertWithheld) {
+    alertWithheld.style.display = isConsentGiven ? 'none' : 'block';
+  }
+  if (approveBtn) {
+    if (!isConsentGiven) {
+      approveBtn.disabled = true;
+      approveBtn.title = "Consent Withheld: Patient or parental consent is required before approval.";
+    } else {
+      approveBtn.disabled = false;
+      approveBtn.title = "";
+    }
+  }
+}
+
+export function renderFocusedCropSnippets(record) {
+  if (!record) return;
+  const uncertain = record.uncertain_fields || [];
+  const p1Src = record.page1_url || record.page1_preview || $('review-p1-img')?.src;
+  const p2Src = record.page2_url || record.page2_preview || $('review-p2-img')?.src;
+
+  const fieldCropDefs = {
+    'person_name': { canvasId: 'crop-canvas-name', boxId: 'crop-preview-name', src: p1Src, region: { x: 0.08, y: 0.04, w: 0.55, h: 0.05 } },
+    'blood_pressure': { canvasId: 'crop-canvas-bp', boxId: 'crop-preview-bp', src: p2Src, region: { x: 0.08, y: 0.16, w: 0.40, h: 0.06 } },
+    'known_allergies': { canvasId: 'crop-canvas-allergies', boxId: 'crop-preview-allergies', src: p1Src, region: { x: 0.08, y: 0.38, w: 0.50, h: 0.06 } }
+  };
+
+  Object.entries(fieldCropDefs).forEach(([fieldKey, def]) => {
+    const box = $(def.boxId);
+    const canvas = $(def.canvasId);
+    if (!box || !canvas) return;
+
+    if (uncertain.includes(fieldKey) && def.src) {
+      box.style.display = 'block';
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const sx = def.region.x * img.naturalWidth;
+        const sy = def.region.y * img.naturalHeight;
+        const sw = def.region.w * img.naturalWidth;
+        const sh = def.region.h * img.naturalHeight;
+        canvas.width = Math.min(sw, 480);
+        canvas.height = Math.round(canvas.width * (sh / sw));
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = def.src;
+    } else {
+      box.style.display = 'none';
+    }
+  });
+}
+
+export function onVitalsChanged() {
+  updateReviewClinicalAlerts();
+}
+
+export function updateReviewClinicalAlerts(record) {
+  const alertsContainer = $('review-clinical-alerts');
+  if (!alertsContainer) return;
+
+  const heightVal = parseFloat($('rev-height')?.value || (record && record.height) || 0);
+  const weightVal = parseFloat($('rev-weight')?.value || (record && record.weight) || 0);
+  const ageVal = parseInt($('rev-age')?.value || (record && record.age) || 0, 10);
+  const bpVal = ($('rev-bp')?.value || (record && record.blood_pressure) || '').trim();
+
+  let hasAnyAlert = false;
+
+  // 1. Live BMI Calculation & High BMI Staging
+  const bmiPill = $('rev-calculated-bmi');
+  const alertBmi = $('alert-high-bmi');
+  const bmiBadge = $('bmi-alert-badge');
+  const bmiTitle = $('bmi-alert-title');
+  const bmiDesc = $('bmi-alert-desc');
+  const pediatricNote = $('bmi-pediatric-note');
+
+  let calculatedBmi = null;
+  if (heightVal > 40 && weightVal > 2) {
+    const heightMeters = heightVal / 100;
+    calculatedBmi = parseFloat((weightVal / (heightMeters * heightMeters)).toFixed(1));
+  }
+
+  if (calculatedBmi !== null && !isNaN(calculatedBmi)) {
+    let cat = 'Normal';
+    let pillColor = '#059669';
+    let pillBg = '#ECFDF5';
+
+    if (calculatedBmi < 18.5) {
+      cat = 'Underweight';
+      pillColor = '#D97706';
+      pillBg = '#FFFBEB';
+    } else if (calculatedBmi >= 30.0) {
+      cat = 'Obese (WHO Cl. II/III)';
+      pillColor = '#DC2626';
+      pillBg = '#FEF2F2';
+    } else if (calculatedBmi >= 25.0) {
+      cat = 'Obese (Asian-Indian) / Overweight';
+      pillColor = '#DC2626';
+      pillBg = '#FEF2F2';
+    } else if (calculatedBmi >= 23.0) {
+      cat = 'Overweight (Asian-Indian)';
+      pillColor = '#EA580C';
+      pillBg = '#FFF7ED';
+    }
+
+    if (bmiPill) {
+      bmiPill.textContent = `${calculatedBmi} kg/m² (${cat})`;
+      bmiPill.style.color = pillColor;
+      bmiPill.style.background = pillBg;
+    }
+
+    // High BMI Clinical Triage Alert (>= 25.0 kg/m² for Asian-Indian / WHO)
+    if (calculatedBmi >= 25.0) {
+      hasAnyAlert = true;
+      if (alertBmi) alertBmi.style.display = 'block';
+      if (bmiBadge) bmiBadge.textContent = `${calculatedBmi} kg/m²`;
+      if (calculatedBmi >= 30.0) {
+        if (bmiTitle) bmiTitle.textContent = 'Severe Obesity Alert (BMI ≥ 30)';
+        if (bmiDesc) bmiDesc.textContent = 'Patient BMI is in the Severe Obese category. Dietary counseling, endocrine workup and metabolic screening indicated.';
+      } else {
+        if (bmiTitle) bmiTitle.textContent = 'High BMI / Overweight Alert (BMI ≥ 25)';
+        if (bmiDesc) bmiDesc.textContent = 'Patient exceeds healthy Asian-Indian cutoffs (≥25 kg/m²). Nutritional guidance and lifestyle intervention advised.';
+      }
+
+      if (pediatricNote) {
+        pediatricNote.style.display = (ageVal > 0 && ageVal <= 18) ? 'block' : 'none';
+      }
+    } else {
+      if (alertBmi) alertBmi.style.display = 'none';
+    }
+  } else {
+    if (bmiPill) {
+      bmiPill.textContent = '-- kg/m²';
+      bmiPill.style.color = '#0284C7';
+      bmiPill.style.background = '#E0F2FE';
+    }
+    if (alertBmi) alertBmi.style.display = 'none';
+  }
+
+  // 2. Hypertension / Blood Pressure Alert
+  const alertBp = $('alert-hypertension');
+  const bpTitle = $('bp-alert-title');
+  const bpBadge = $('bp-alert-badge');
+  const bpDesc = $('bp-alert-desc');
+
+  if (bpVal) {
+    const parts = bpVal.replace(/[^0-9/]/g, '').split('/');
+    const sys = parseInt(parts[0], 10);
+    const dia = parts[1] ? parseInt(parts[1], 10) : null;
+
+    if (!isNaN(sys)) {
+      if (sys >= 180 || (dia && dia >= 120)) {
+        hasAnyAlert = true;
+        if (alertBp) {
+          alertBp.style.display = 'block';
+          alertBp.classList.add('hypertensive-crisis-pulse');
+        }
+        if (bpTitle) bpTitle.textContent = '🚨 Hypertensive Crisis / Critical BP';
+        if (bpBadge) {
+          bpBadge.textContent = `${sys}/${dia || '--'} mmHg`;
+          bpBadge.style.background = '#DC2626';
+        }
+        if (bpDesc) bpDesc.textContent = 'Critically elevated BP (Systolic ≥ 180 or Diastolic ≥ 120). Recheck immediately and provide urgent medical referral.';
+      } else if (sys >= 140 || (dia && dia >= 90)) {
+        hasAnyAlert = true;
+        if (alertBp) {
+          alertBp.style.display = 'block';
+          alertBp.classList.remove('hypertensive-crisis-pulse');
+        }
+        if (bpTitle) bpTitle.textContent = 'Stage 2 Hypertension Alert';
+        if (bpBadge) {
+          bpBadge.textContent = `${sys}/${dia || '--'} mmHg`;
+          bpBadge.style.background = '#D97706';
+        }
+        if (bpDesc) bpDesc.textContent = 'Blood pressure ≥ 140/90 mmHg. Clinical review and specialist follow-up consultation recommended.';
+      } else if (sys >= 130 || (dia && dia >= 80)) {
+        hasAnyAlert = true;
+        if (alertBp) {
+          alertBp.style.display = 'block';
+          alertBp.classList.remove('hypertensive-crisis-pulse');
+        }
+        if (bpTitle) bpTitle.textContent = 'Stage 1 Hypertension / Elevated BP';
+        if (bpBadge) {
+          bpBadge.textContent = `${sys}/${dia || '--'} mmHg`;
+          bpBadge.style.background = '#F59E0B';
+        }
+        if (bpDesc) bpDesc.textContent = 'Blood pressure in pre-hypertensive / Stage 1 range. Routine follow-up suggested.';
+      } else {
+        if (alertBp) {
+          alertBp.style.display = 'none';
+          alertBp.classList.remove('hypertensive-crisis-pulse');
+        }
+      }
+    } else {
+      if (alertBp) {
+        alertBp.style.display = 'none';
+        alertBp.classList.remove('hypertensive-crisis-pulse');
+      }
+    }
+  } else {
+    if (alertBp) {
+      alertBp.style.display = 'none';
+      alertBp.classList.remove('hypertensive-crisis-pulse');
+    }
+  }
+
+  // 3. Missing Essential Fields Warning Card & Input Highlights
+  const alertMissing = $('alert-missing-fields');
+  const missingDesc = $('missing-fields-desc');
+  const essentialFields = [
+    { label: 'Patient Name', id: 'rev-name' },
+    { label: 'Age', id: 'rev-age' },
+    { label: 'Gender', id: 'rev-gender' },
+    { label: 'Height', id: 'rev-height' },
+    { label: 'Weight', id: 'rev-weight' },
+    { label: 'Blood Pressure', id: 'rev-bp' },
+    { label: 'Known Allergies', id: 'rev-allergies' }
+  ];
+
+  // Dynamic visual feedback: highlight blank essential inputs with pulsing amber border
+  essentialFields.forEach(f => {
+    const el = $(f.id);
+    if (el) {
+      if (!el.value.trim()) {
+        el.classList.add('input-missing-essential');
+      } else {
+        el.classList.remove('input-missing-essential');
+      }
+    }
+  });
+
+  const blankEssentials = essentialFields
+    .filter(f => !($(f.id)?.value.trim()))
+    .map(f => f.label);
+
+  if (blankEssentials.length > 0) {
+    hasAnyAlert = true;
+    if (alertMissing) alertMissing.style.display = 'block';
+    if (missingDesc) {
+      missingDesc.textContent = `Unrecorded essential fields: ${blankEssentials.join(', ')}. Please verify with the paper intake form.`;
+    }
+  } else {
+    if (alertMissing) alertMissing.style.display = 'none';
+  }
+
+  // 4. Clinical Red Flags Alert (Pallor + Pulse, Cyanosis, Clubbing, Allergies)
+  const alertRedFlags = $('alert-red-flags');
+  const redFlags = [];
+
+  const pulseVal = parseInt($('rev-pulse')?.value || '', 10);
+  const pallor = ($('rev-pallor')?.value || '').toLowerCase();
+  if (pallor && !['absent', 'nad', 'no', 'nil', 'none', 'na'].some(w => pallor.includes(w))) {
+    if (!isNaN(pulseVal) && pulseVal > 100) {
+      redFlags.push(`Severe Anemia Risk: Marked Pallor + Tachycardia (${pulseVal} bpm)`);
+    } else {
+      redFlags.push(`Pallor: ${$('rev-pallor').value.trim()}`);
+    }
+  }
+
+  const cyanosis = ($('rev-cyanosis')?.value || '').toLowerCase();
+  if (cyanosis && !['absent', 'nad', 'no', 'nil', 'none', 'na'].some(w => cyanosis.includes(w))) {
+    redFlags.push(`Cyanosis: ${$('rev-cyanosis').value.trim()}`);
+  }
+
+  const clubbing = ($('rev-clubbing')?.value || '').toLowerCase();
+  if (clubbing && !['absent', 'nad', 'no', 'nil', 'none', 'na'].some(w => clubbing.includes(w))) {
+    redFlags.push(`Clubbing: ${$('rev-clubbing').value.trim()}`);
+  }
+
+  const edema = ($('rev-edema')?.value || '').toLowerCase();
+  if (edema && !['absent', 'nad', 'no', 'nil', 'none', 'na'].some(w => edema.includes(w))) {
+    redFlags.push(`Edema: ${$('rev-edema').value.trim()}`);
+  }
+
+  const allergies = ($('rev-allergies')?.value || '').toLowerCase();
+  if (allergies && !['no known', 'nil', 'none', 'nad', 'no', 'na', 'no allergies'].some(w => allergies.includes(w))) {
+    const criticalDrugs = ['penicillin', 'sulfa', 'nsaid', 'aspirin', 'paracetamol', 'amoxicillin', 'cipro', 'ibuprofen'];
+    const isCritical = criticalDrugs.some(d => allergies.includes(d));
+    if (isCritical) {
+      redFlags.push(`⚠️ Critical Drug Allergy: ${$('rev-allergies').value.trim()}`);
+    } else {
+      redFlags.push(`Allergies: ${$('rev-allergies').value.trim()}`);
+    }
+  }
+
+  if (redFlags.length > 0) {
+    hasAnyAlert = true;
+    if (alertRedFlags) {
+      alertRedFlags.style.display = 'block';
+      alertRedFlags.innerHTML = `🚩 <b>Clinical Red Flags:</b> ${redFlags.map(f => `<span style="display:inline-block;background:#FFE4E6;padding:2px 8px;border-radius:6px;margin:2px 4px 2px 0;">${escapeHtml(f)}</span>`).join('')}`;
+    }
+  } else {
+    if (alertRedFlags) alertRedFlags.style.display = 'none';
+  }
+
+  // 4. Paediatric Screening Alerts (IAP LMS Centiles, BP Centile, ATR Caliper)
+  const alertPaediatric = $('alert-paediatric-screening');
+  const paedAlertsDesc = $('paediatric-alerts-desc');
+  const paedBadge = $('paediatric-alerts-badge');
+
+  const paedAlertsList = (record && (record.paediatric_alerts || (record.structured_record && record.structured_record.paediatric_alerts))) || [];
+  const isPaed = (record && record.is_paediatric) || (ageVal > 0 && ageVal < 18);
+
+  if (alertPaediatric) {
+    if (isPaed && paedAlertsList.length > 0) {
+      hasAnyAlert = true;
+      alertPaediatric.style.display = 'block';
+      if (paedBadge) paedBadge.textContent = `${paedAlertsList.length} alert${paedAlertsList.length > 1 ? 's' : ''}`;
+      if (paedAlertsDesc) {
+        paedAlertsDesc.innerHTML = paedAlertsList.map(a => `<div style="margin-bottom:2px;">• ${escapeHtml(a)}</div>`).join('');
+      }
+    } else {
+      alertPaediatric.style.display = 'none';
+    }
+  }
+
+  alertsContainer.style.display = hasAnyAlert ? 'flex' : 'none';
+}
+
+export function markPhysicalExamNormal() {
+  const normGeneral = 'Absent (NAD)';
+  if ($('rev-pallor')) $('rev-pallor').value = normGeneral;
+  if ($('rev-icterus')) $('rev-icterus').value = normGeneral;
+  if ($('rev-cyanosis')) $('rev-cyanosis').value = normGeneral;
+  if ($('rev-edema')) $('rev-edema').value = normGeneral;
+  if ($('rev-clubbing')) $('rev-clubbing').value = normGeneral;
+  if ($('rev-lymph')) $('rev-lymph').value = normGeneral;
+
+  if ($('rev-sys-rs')) $('rev-sys-rs').value = 'Normal vesicular breath sounds, no added sounds (NAD)';
+  if ($('rev-sys-cvs')) $('rev-sys-cvs').value = 'S1 S2 heard, normal rhythm, no murmurs (NAD)';
+  if ($('rev-sys-abdomen')) $('rev-sys-abdomen').value = 'Soft, non-tender, no organomegaly (NAD)';
+  if ($('rev-sys-cns')) $('rev-sys-cns').value = 'Conscious, oriented, normal reflexes (NAD)';
+  if ($('rev-sys-ent')) $('rev-sys-ent').value = 'Normal (NAD)';
+  if ($('rev-sys-skin')) $('rev-sys-skin').value = 'Normal, no active dermatological lesions (NAD)';
+
+  toast('Systemic exam & general signs populated as Normal (NAD) ✨');
+  updateReviewClinicalAlerts();
+}
+
+export function buildFullStructuredReviewPayload() {
+  const base = (state.activeRecord && state.activeRecord.structured_record) 
+    ? JSON.parse(JSON.stringify(state.activeRecord.structured_record)) 
+    : {};
+
+  base.personal_information = Object.assign({}, base.personal_information, {
+    full_name: $('rev-name')?.value.trim() || '',
+    age: $('rev-age')?.value.trim() || '',
+    gender: $('rev-gender')?.value.trim() || '',
+    blood_group: $('rev-blood-group')?.value.trim() || '',
+    dob: $('rev-dob')?.value.trim() || '',
+    doc_id: $('rev-doc-id')?.value.trim() || '',
+    admission_id: $('rev-adm-id')?.value.trim() || '',
+    school_college_name: $('rev-school')?.value.trim() || '',
+    mobile_number: $('rev-mobile')?.value.trim() || '',
+    address: $('rev-address')?.value.trim() || ''
+  });
+
+  base.health_assessment = Object.assign({}, base.health_assessment, {
+    height_cm: $('rev-height')?.value.trim() || '',
+    weight_kg: $('rev-weight')?.value.trim() || '',
+    blood_pressure_mmhg: $('rev-bp')?.value.trim() || '',
+    pulse_bpm: $('rev-pulse')?.value.trim() || '',
+    random_blood_sugar_mgdl: $('rev-rbs')?.value.trim() || '',
+    waist_circumference_cm: $('rev-waist')?.value.trim() || '',
+    pallor: $('rev-pallor')?.value.trim() || '',
+    icterus: $('rev-icterus')?.value.trim() || '',
+    cyanosis: $('rev-cyanosis')?.value.trim() || '',
+    edema: $('rev-edema')?.value.trim() || '',
+    clubbing: $('rev-clubbing')?.value.trim() || '',
+    lymphadenopathy: $('rev-lymph')?.value.trim() || '',
+    ecg_notes: $('rev-ecg')?.value.trim() || '',
+    echo_notes: $('rev-echo')?.value.trim() || ''
+  });
+
+  base.medical_history = Object.assign({}, base.medical_history, {
+    known_allergies: $('rev-allergies')?.value.trim() || '',
+    previous_surgery_hospitalization: $('rev-surgery')?.value.trim() || '',
+    current_previous_medications: $('rev-medications')?.value.trim() || '',
+    abdominal_pain_indigestion_constipation: $('rev-abdominal')?.value.trim() || '',
+    skin_hair_ear_nose_problems: $('rev-ent')?.value.trim() || '',
+    physical_activity: $('rev-activity')?.value.trim() || '',
+    social_history: $('rev-social')?.value.trim() || ''
+  });
+
+  base.family_history = Object.assign({}, base.family_history, {
+    diabetes: $('rev-fam-diabetes')?.value.trim() || '',
+    hypertension: $('rev-fam-hypertension')?.value.trim() || '',
+    heart_disease: $('rev-fam-heart')?.value.trim() || '',
+    thyroid: $('rev-fam-thyroid')?.value.trim() || '',
+    asthma: $('rev-fam-asthma')?.value.trim() || '',
+    other_conditions: $('rev-fam-other')?.value.trim() || ''
+  });
+
+  base.system_examination = Object.assign({}, base.system_examination, {
+    respiratory_system: $('rev-sys-rs')?.value.trim() || '',
+    cardiovascular_system: $('rev-sys-cvs')?.value.trim() || '',
+    abdomen: $('rev-sys-abdomen')?.value.trim() || '',
+    central_nervous_system: $('rev-sys-cns')?.value.trim() || '',
+    ear: $('rev-sys-ent')?.value.trim() || '',
+    skin: $('rev-sys-skin')?.value.trim() || ''
+  });
+
+  base.vision = Object.assign({}, base.vision, {
+    distant_vision_right: $('rev-va-right')?.value.trim() || '',
+    distant_vision_left: $('rev-va-left')?.value.trim() || '',
+    vision_category: $('rev-vision-category')?.value.trim() || ''
+  });
+
+  base.dental = Object.assign({}, base.dental, {
+    normal: $('rev-dental-status')?.value.trim() || '',
+    advice: $('rev-dental-advice')?.value.trim() || ''
+  });
+
+  base.referral = Object.assign({}, base.referral, {
+    specialist_referred_to: $('rev-referral')?.value.trim() || '',
+    doctor_signature_present: $('rev-doc-sign')?.value.trim() || ''
+  });
+
+  return base;
+}
+
+export function showMissingConfirmationModal(blankList, onProceed) {
+  const modal = $('modal-missing-confirm');
+  const chipsContainer = $('missing-fields-chips');
+  if (chipsContainer) {
+    chipsContainer.innerHTML = blankList.map(f => 
+      `<span style="background:#FEE2E2;color:#991B1B;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:700;">${escapeHtml(f)}</span>`
+    ).join('');
+  }
+  window._proceedMissingCallback = onProceed;
+  if (modal) modal.style.display = 'flex';
+}
+
+export function closeMissingConfirmModal() {
+  const modal = $('modal-missing-confirm');
+  if (modal) modal.style.display = 'none';
+  window._proceedMissingCallback = null;
+}
+
+export function confirmApproveDespiteMissing() {
+  state.missingApprovedOverride = true;
+  const cb = window._proceedMissingCallback;
+  closeMissingConfirmModal();
+  if (cb) cb();
+}
+
+export function printReferralSlip(recordId) {
+  const id = recordId || (state.activeRecord && state.activeRecord.id);
+  if (!id) {
+    toast('No active record selected for referral slip.', true);
+    return;
+  }
+  const slipUrl = `/api/records/${encodeURIComponent(id)}/referral-slip`;
+  window.open(slipUrl, '_blank');
 }
 
 export function toggleReviewDocs() {
@@ -1354,10 +2039,44 @@ export function switchReviewTab(tabKey) {
 
 export async function approveAndSaveRecord() {
   if (!state.activeRecord) return;
+
+  const essentialFields = [
+    { label: 'Patient Name', id: 'rev-name' },
+    { label: 'Age', id: 'rev-age' },
+    { label: 'Gender', id: 'rev-gender' },
+    { label: 'Height', id: 'rev-height' },
+    { label: 'Weight', id: 'rev-weight' },
+    { label: 'Blood Pressure', id: 'rev-bp' },
+    { label: 'Known Allergies', id: 'rev-allergies' }
+  ];
+
+  const blankEssentials = essentialFields
+    .filter(f => !($(f.id)?.value.trim()))
+    .map(f => f.label);
+
+  if (blankEssentials.length > 0 && !state.missingApprovedOverride) {
+    showMissingConfirmationModal(blankEssentials, () => {
+      approveAndSaveRecord();
+    });
+    return;
+  }
+
+  // Consent Gating check
+  const consentChecked = $('rev-consent-screening')?.checked ?? true;
+  if (!consentChecked) {
+    toast('Approval refused: Patient or parental consent is required before clinical approval.', true);
+    return;
+  }
+
+  // Reset override flag for next record
+  state.missingApprovedOverride = false;
+
   const btn = $('approve-btn');
   if (btn) btn.disabled = true;
 
   try {
+    const fullStructured = buildFullStructuredReviewPayload();
+
     const updates = {
       person_name: $('rev-name')?.value.trim() || state.activeRecord.person_name,
       age: $('rev-age')?.value.trim() || state.activeRecord.age,
@@ -1367,15 +2086,17 @@ export async function approveAndSaveRecord() {
       blood_pressure: $('rev-bp')?.value.trim() || state.activeRecord.blood_pressure,
       examination_details: $('rev-sys-rs')?.value.trim() || state.activeRecord.examination_details,
       referral_details: $('rev-referral')?.value.trim() || state.activeRecord.referral_details,
-      reviewer_notes: $('rev-doctor-notes')?.value.trim() || 'Verified and approved.'
+      reviewer_notes: $('rev-doctor-notes')?.value.trim() || 'Verified and approved.',
+      structured_record: fullStructured,
+      consent_given: consentChecked ? 1 : 0
     };
 
-    // 1. Review edits
+    // 1. Review edits with full structured 7-tab updates
     await api.reviewRecord(state.activeRecord.id, updates, state.doctorName);
     // 2. Explicit approval action (checks no unresolved flags remain, bills quota, marks approved)
     await api.approveRecord(state.activeRecord.id, state.doctorName);
 
-    toast('Record approved and quota billed!');
+    toast('Record approved and quota billed! 📋✅');
     go('home');
   } catch (err) {
     toast('Approval failed: ' + err.message, true);
@@ -1390,6 +2111,8 @@ export async function saveDraftReview() {
   if (btn) btn.disabled = true;
 
   try {
+    const fullStructured = buildFullStructuredReviewPayload();
+
     const updates = {
       person_name: $('rev-name')?.value.trim() || state.activeRecord.person_name,
       age: $('rev-age')?.value.trim() || state.activeRecord.age,
@@ -1399,11 +2122,13 @@ export async function saveDraftReview() {
       blood_pressure: $('rev-bp')?.value.trim() || state.activeRecord.blood_pressure,
       examination_details: $('rev-sys-rs')?.value.trim() || state.activeRecord.examination_details,
       referral_details: $('rev-referral')?.value.trim() || state.activeRecord.referral_details,
-      reviewer_notes: $('rev-doctor-notes')?.value.trim() || 'Draft review saved.'
+      reviewer_notes: $('rev-doctor-notes')?.value.trim() || 'Draft review saved.',
+      structured_record: fullStructured,
+      status: 'needs_review'
     };
 
     await api.reviewRecord(state.activeRecord.id, updates, state.doctorName);
-    toast('Draft review saved (record not approved yet).');
+    toast('Draft review saved (record remains in To check).');
     go('records');
   } catch (err) {
     toast('Failed to save draft: ' + err.message, true);
@@ -1463,13 +2188,14 @@ export function downloadActiveOrgExcel() {
 
 export function setRecordsFilter(filter) {
   state.recordsFilter = filter;
-  ['rf-all', 'rf-warn', 'rf-ok'].forEach(id => {
+  ['rf-all', 'rf-warn', 'rf-ok', 'rf-highrisk'].forEach(id => {
     const el = $(id);
     if (el) el.classList.remove('active');
   });
   if (filter === 'all' && $('rf-all')) $('rf-all').classList.add('active');
   if (filter === 'needs_review' && $('rf-warn')) $('rf-warn').classList.add('active');
   if (filter === 'reviewed' && $('rf-ok')) $('rf-ok').classList.add('active');
+  if (filter === 'high_risk' && $('rf-highrisk')) $('rf-highrisk').classList.add('active');
   filterRecords();
 }
 
@@ -1491,9 +2217,23 @@ export function filterRecords() {
                       (r.id || '').toLowerCase().includes(query);
     if (!nameMatch) return false;
 
-    // Status filter
+    // Status / Risk filter
     if (filter === 'needs_review' && r.status !== 'needs_review') return false;
     if (filter === 'reviewed' && r.status !== 'reviewed') return false;
+    if (filter === 'high_risk') {
+      const h = parseFloat(r.height);
+      const w = parseFloat(r.weight);
+      const bmi = (h > 40 && w > 2) ? (w / ((h / 100) * (h / 100))) : null;
+      const bp = (r.blood_pressure || '').split('/');
+      const sys = bp[0] ? parseInt(bp[0], 10) : null;
+      const dia = bp[1] ? parseInt(bp[1], 10) : null;
+      const hasHighBmi = bmi !== null && bmi >= 25.0;
+      const hasHighBp = (sys !== null && sys >= 140) || (dia !== null && dia >= 90);
+      const refStr = (r.referral_details || '').trim().toLowerCase();
+      const hasReferral = Boolean(refStr.length > 0 && !['none', 'nil', 'na', 'normal', 'no', 'nad'].includes(refStr));
+      const hasUncertain = Boolean(r.uncertain_fields && r.uncertain_fields.length > 0);
+      if (!hasHighBmi && !hasHighBp && !hasReferral && !hasUncertain) return false;
+    }
     return true;
   });
 
@@ -1593,9 +2333,10 @@ let excelSearchQuery = '';
 export function exportExcel(campId = null, onlyReviewed = false) {
   const targetCampId = campId || null;
   const camp = targetCampId ? state.camps.find(x => x.id === targetCampId) : null;
-  const rawName = camp ? camp.name : 'All_Organizations';
+  const formType = $('export-form-type-select')?.value || (camp && camp.target_group) || null;
+  const rawName = camp ? camp.name : (formType ? `${formType.toUpperCase()}_Records` : 'All_Organizations');
   const safeName = rawName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_') || 'Health_Records';
-  const url = api.getExportUrl(targetCampId, onlyReviewed, 'xlsx');
+  const url = api.getExportUrl(targetCampId, onlyReviewed, 'xlsx', formType);
   const filename = `${safeName}_Health_Records.xlsx`;
   
   triggerDownload(url, filename);
@@ -1670,6 +2411,36 @@ export function exportCampExcel(campId) {
   renderExcelPreview('records');
 }
 
+export function exportAdultExcel(campId = null) {
+  const targetCampId = campId || ($('export-camp-select')?.value || null);
+  const onlyReviewed = $('export-only-reviewed')?.checked || false;
+  const url = api.getAdultExportUrl(targetCampId, onlyReviewed);
+  const filename = `Adult_Health_Records_${targetCampId || 'all'}.xlsx`;
+  triggerDownload(url, filename);
+  toast(`Downloaded ${filename} (.xlsx)`);
+  go('export');
+  const ribTitle = $('excel-ribbon-filename');
+  if (ribTitle) ribTitle.textContent = `${filename} (Live In-App Viewer)`;
+  const fTypeSel = $('export-form-type-select');
+  if (fTypeSel) fTypeSel.value = 'adult';
+  renderExcelPreview(currentExcelSheet);
+}
+
+export function exportPaediatricExcel(campId = null) {
+  const targetCampId = campId || ($('export-camp-select')?.value || null);
+  const onlyReviewed = $('export-only-reviewed')?.checked || false;
+  const url = api.getPaediatricExportUrl(targetCampId, onlyReviewed);
+  const filename = `Paediatric_Health_Records_${targetCampId || 'all'}.xlsx`;
+  triggerDownload(url, filename);
+  toast(`Downloaded ${filename} (.xlsx)`);
+  go('export');
+  const ribTitle = $('excel-ribbon-filename');
+  if (ribTitle) ribTitle.textContent = `${filename} (Live In-App Viewer)`;
+  const fTypeSel = $('export-form-type-select');
+  if (fTypeSel) fTypeSel.value = 'paediatric';
+  renderExcelPreview(currentExcelSheet);
+}
+
 export function executeExport() {
   const campSelect = $('export-camp-select');
   const campId = (campSelect && campSelect.value) ? campSelect.value : null;
@@ -1690,8 +2461,10 @@ export function toggleExcelFullscreen() {
 export function switchExcelSheetTab(sheetKey) {
   currentExcelSheet = sheetKey;
   const tRec = $('extab-records');
+  const tAttr = $('extab-attributes');
   const tCmp = $('extab-camps');
   if (tRec) tRec.classList.toggle('active', sheetKey === 'records');
+  if (tAttr) tAttr.classList.toggle('active', sheetKey === 'attributes');
   if (tCmp) tCmp.classList.toggle('active', sheetKey === 'camps');
   renderExcelPreview(sheetKey);
 }
@@ -1711,24 +2484,88 @@ export function onExportFilterChanged() {
   renderExcelPreview(currentExcelSheet);
 }
 
-export function renderExcelPreview(sheetName = currentExcelSheet) {
+export async function renderExcelPreview(sheetName = currentExcelSheet) {
   const container = $('excel-grid-container');
   if (!container) return;
 
-  const selCamp = $('export-camp-select')?.value || null;
+  const selCampId = $('export-camp-select')?.value || null;
+  const selCampObj = selCampId ? state.camps.find(c => c.id === selCampId) : null;
+  const explicitFormType = $('export-form-type-select')?.value || null;
+  const activeFormType = explicitFormType || (selCampObj && selCampObj.target_group) || 'adult';
   const onlyApproved = $('export-only-reviewed')?.checked || false;
   const campsCountEl = $('excel-camps-count');
   if (campsCountEl) campsCountEl.textContent = state.camps.length;
 
-  if (sheetName === 'records') {
-    // Filter records
+  if (sheetName === 'attributes') {
+    // ── Sheet 2: Form Structure & Attributes Dictionary ────────────────────
+    container.innerHTML = `
+      <div style="padding:24px;text-align:center;color:var(--mute);">
+        <div style="font-size:24px;animation:spin 1s linear infinite;display:inline-block;">⏳</div>
+        <p style="font-size:13px;margin-top:6px;">Loading ${activeFormType.toUpperCase()} form attributes &amp; clinical data dictionary…</p>
+      </div>
+    `;
+
+    try {
+      const resp = await api.getFormAttributes(activeFormType);
+      const attrs = (resp && resp.attributes) ? resp.attributes : [];
+      const attrCountEl = $('excel-attributes-count');
+      if (attrCountEl) attrCountEl.textContent = attrs.length;
+
+      if (!attrs.length) {
+        container.innerHTML = `<div style="padding:30px;text-align:center;color:var(--mute);">No attributes found for ${escapeHtml(activeFormType)} form.</div>`;
+        return;
+      }
+
+      const headers = ["Attribute Key", "Clinical Label", "Page", "Section", "Data Type", "Recorded By", "Required", "Excel Header", "Validation Rule"];
+      let html = `<table class="excel-table"><thead><tr>`;
+      html += `<th class="col-corner">#</th>`;
+      headers.forEach((h, idx) => {
+        const colLetter = String.fromCharCode(65 + (idx % 26));
+        html += `<th>
+          <div class="excel-th-box">
+            <span class="excel-th-letter">${colLetter}</span>
+            <span class="excel-th-title">${escapeHtml(h)}</span>
+          </div>
+        </th>`;
+      });
+      html += `</tr></thead><tbody>`;
+
+      attrs.forEach((a, idx) => {
+        html += `<tr>`;
+        html += `<td class="row-num">${idx + 1}</td>`;
+        html += `<td><code>${escapeHtml(a.key || '')}</code></td>`;
+        html += `<td><b>${escapeHtml(a.label || '')}</b></td>`;
+        html += `<td style="text-align:center;">P${a.page_number || 1}</td>`;
+        html += `<td>${escapeHtml(a.section_title || '')}</td>`;
+        html += `<td><span class="tag" style="font-size:10px;background:#F1F5F9;color:#334155;">${escapeHtml(a.type || '')}</span></td>`;
+        html += `<td>${escapeHtml((a.writer || '').toUpperCase())}</td>`;
+        html += `<td style="text-align:center;"><span class="tag ${a.required ? 'e' : ''}" style="font-size:10px;">${a.required ? 'Mandatory' : 'Optional'}</span></td>`;
+        html += `<td>${escapeHtml(a.export_column || a.key || '')}</td>`;
+        html += `<td><small style="color:var(--mute);">${escapeHtml(a.validation || 'None')}</small></td>`;
+        html += `</tr>`;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    } catch (e) {
+      container.innerHTML = `<div style="padding:30px;text-align:center;color:var(--err);">Failed to load attributes: ${escapeHtml(e.message || String(e))}</div>`;
+    }
+
+  } else if (sheetName === 'records') {
+    // ── Sheet 1: Clinical Records ──────────────────────────────────────────
     let list = state.records.slice();
-    if (selCamp) {
-      list = list.filter(r => r.camp_id === selCamp);
+    if (selCampId) {
+      list = list.filter(r => r.camp_id === selCampId);
     }
     if (onlyApproved) {
-      list = list.filter(r => r.status === 'reviewed');
+      list = list.filter(r => r.status === 'reviewed' || r.status === 'approved');
     }
+    if (activeFormType === 'paediatric') {
+      list = list.filter(r => r.target_group === 'paediatric' || (selCampObj && selCampObj.target_group === 'paediatric') || r.is_paediatric);
+    } else if (activeFormType === 'adult' && explicitFormType) {
+      list = list.filter(r => r.target_group !== 'paediatric' && (!selCampObj || selCampObj.target_group !== 'paediatric'));
+    }
+
     if (excelSearchQuery) {
       list = list.filter(r => {
         const pName = (r.person_name || '').toLowerCase();
@@ -1747,13 +2584,20 @@ export function renderExcelPreview(sheetName = currentExcelSheet) {
         <div style="padding:32px 20px;text-align:center;color:var(--mute);">
           <div style="font-size:28px;margin-bottom:8px;">📋</div>
           <b>No records match the current spreadsheet filter.</b>
-          <p style="font-size:12.5px;margin-top:4px;">Select "All Health Camps" or clear your search to view all patient records.</p>
+          <p style="font-size:12.5px;margin-top:4px;">Select "All Health Camps" or clear your search to view all clinical records.</p>
         </div>
       `;
       return;
     }
 
-    const headers = [
+    const isPaediatric = activeFormType === 'paediatric';
+    const headers = isPaediatric ? [
+      "Record ID", "School / Camp", "Class & Sec", "Admission ID", "Student Name", "Status",
+      "Age", "Gender", "Blood Group", "Parent / Contact", "Height (cm)", "Weight (kg)",
+      "BMI", "BMI Centile", "Blood Pressure", "BP Centile", "Pulse", "ATR Caliper (°)",
+      "Gait", "Otoscopy Right", "Otoscopy Left", "Vision OD", "Vision OS", "Dental Caries",
+      "Referral Specialist", "Screening Alerts"
+    ] : [
       "Record ID", "Camp Name", "Person Name", "Review Status", "Age", "Gender", 
       "Blood Pressure", "Pulse", "Height", "Weight", "BMI", "RBS (mg/dL)", "Waist", 
       "Known Allergies", "Surgery / Hospital", "Medications", "Social History", 
@@ -1781,9 +2625,11 @@ export function renderExcelPreview(sheetName = currentExcelSheet) {
       const f = sr.family_history || {};
       const h = sr.health_assessment || {};
       const s = sr.system_examination || {};
-      const vis = sr.vision || {};
-      const den = sr.dental || {};
+      const vis = sr.vision || sr.vision_assessment || {};
+      const den = sr.dental || sr.dental_assessment || {};
       const ref = sr.referral || {};
+      const paed = sr.paediatric_growth || {};
+      const pscreen = sr.paediatric_screening || {};
 
       const getVal = (grp, key, fallback = '') => {
         if (!grp || !grp[key]) return fallback;
@@ -1804,43 +2650,82 @@ export function renderExcelPreview(sheetName = currentExcelSheet) {
         }
       } catch {}
 
-      const rowVals = [
-        r.id,
-        r.camp_name || 'Camp',
-        getVal(p, 'full_name', r.person_name || 'Patient'),
-        r.status === 'reviewed' ? 'Approved' : 'To check',
-        getVal(p, 'age', r.age || ''),
-        getVal(p, 'gender', r.gender || ''),
-        getVal(h, 'blood_pressure_mmhg', r.blood_pressure || ''),
-        getVal(h, 'pulse_bpm', ''),
-        hVal,
-        wVal,
-        bmi,
-        getVal(h, 'random_blood_sugar_mgdl', ''),
-        getVal(h, 'waist_circumference_cm', ''),
-        getVal(m, 'known_allergies', 'None'),
-        getVal(m, 'previous_surgery_hospitalization', 'None'),
-        getVal(m, 'current_previous_medications', 'None'),
-        getVal(m, 'social_history', 'None'),
-        getVal(f, 'diabetes', 'No'),
-        getVal(f, 'hypertension', 'No'),
-        getVal(s, 'respiratory_system', r.examination_details || 'Normal'),
-        getVal(s, 'cardiovascular_system', 'Normal'),
-        getVal(vis, 'distant_vision_right', '6/6'),
-        getVal(vis, 'distant_vision_left', '6/6'),
-        getVal(den, 'normal', 'Normal'),
-        getVal(ref, 'specialist_referred_to', r.referral_details || 'None'),
-        r.reviewed_by || '',
-        r.created_at ? r.created_at.substring(0, 10) : ''
-      ];
+      let rowVals = [];
+      if (isPaediatric) {
+        const atrVal = getVal(paed, 'spinal_caliper_atr', r.spinal_caliper_atr || '');
+        const alerts = r.paediatric_alerts || pscreen.alerts || [];
+        const alertsStr = Array.isArray(alerts) ? alerts.join(', ') : (alerts || 'None');
+        rowVals = [
+          r.id,
+          r.camp_name || 'School Camp',
+          r.class_and_section || getVal(p, 'class_and_section', ''),
+          r.admission_id || getVal(p, 'admission_id', ''),
+          getVal(p, 'full_name', r.person_name || 'Student'),
+          r.status === 'reviewed' || r.status === 'approved' ? 'Approved' : 'To check',
+          getVal(p, 'age', r.age || ''),
+          getVal(p, 'gender', r.gender || ''),
+          getVal(p, 'blood_group', r.blood_group || ''),
+          getVal(p, 'parent_or_spouse', r.parent_guardian_name || ''),
+          hVal,
+          wVal,
+          getVal(paed, 'bmi', bmi),
+          getVal(paed, 'bmi_centile', r.bmi_centile || pscreen.bmi_centile || ''),
+          getVal(h, 'blood_pressure_mmhg', r.blood_pressure || ''),
+          getVal(paed, 'bp_percentile', r.bp_percentile || pscreen.bp_percentile || ''),
+          getVal(h, 'pulse_bpm', r.pulse || ''),
+          atrVal,
+          r.gait_status || getVal(sr, 'gait_status', 'Normal'),
+          r.otoscopy_right || getVal(sr, 'otoscope_right_ear', 'Normal'),
+          r.otoscopy_left || getVal(sr, 'otoscope_left_ear', 'Normal'),
+          getVal(vis, 'right_eye', '6/6'),
+          getVal(vis, 'left_eye', '6/6'),
+          r.dental_caries || getVal(den, 'dental_abnormality', 'None'),
+          getVal(ref, 'specialist_referred_to', r.referral_details || 'None'),
+          alertsStr
+        ];
+      } else {
+        rowVals = [
+          r.id,
+          r.camp_name || 'Camp',
+          getVal(p, 'full_name', r.person_name || 'Patient'),
+          r.status === 'reviewed' || r.status === 'approved' ? 'Approved' : 'To check',
+          getVal(p, 'age', r.age || ''),
+          getVal(p, 'gender', r.gender || ''),
+          getVal(h, 'blood_pressure_mmhg', r.blood_pressure || ''),
+          getVal(h, 'pulse_bpm', ''),
+          hVal,
+          wVal,
+          bmi,
+          getVal(h, 'random_blood_sugar_mgdl', ''),
+          getVal(h, 'waist_circumference_cm', ''),
+          getVal(m, 'known_allergies', 'None'),
+          getVal(m, 'previous_surgery_hospitalization', 'None'),
+          getVal(m, 'current_previous_medications', 'None'),
+          getVal(m, 'social_history', 'None'),
+          getVal(f, 'diabetes', 'No'),
+          getVal(f, 'hypertension', 'No'),
+          getVal(s, 'respiratory_system', r.examination_details || 'Normal'),
+          getVal(s, 'cardiovascular_system', 'Normal'),
+          getVal(vis, 'distant_vision_right', '6/6'),
+          getVal(vis, 'distant_vision_left', '6/6'),
+          getVal(den, 'normal', 'Normal'),
+          getVal(ref, 'specialist_referred_to', r.referral_details || 'None'),
+          r.reviewed_by || '',
+          r.created_at ? r.created_at.substring(0, 10) : ''
+        ];
+      }
 
       html += `<tr>`;
       html += `<td class="row-num">${rowIdx + 1}</td>`;
       rowVals.forEach((val, cIdx) => {
         let cellContent = escapeHtml(String(val || ''));
-        if (cIdx === 3) {
+        const statusIdx = isPaediatric ? 5 : 3;
+        if (cIdx === statusIdx) {
           const isApp = val === 'Approved';
           cellContent = `<span class="tag ${isApp ? '' : 'w'}" style="font-size:10.5px;padding:2px 8px;">${cellContent}</span>`;
+        }
+        if (isPaediatric && cIdx === 17 && parseFloat(String(val)) >= 5) {
+          cellContent = `<span class="tag e" style="font-size:10px;">ATR ${cellContent}°</span>`;
         }
         html += `<td>${cellContent}</td>`;
       });
@@ -1851,13 +2736,13 @@ export function renderExcelPreview(sheetName = currentExcelSheet) {
     container.innerHTML = html;
 
   } else {
-    // Sheet 2: Camps Summary Table
+    // ── Sheet 3: Camps Summary Table ──────────────────────────────────────
     const campsCountEl = $('excel-camps-count');
     if (campsCountEl) campsCountEl.textContent = state.camps.length;
 
     let html = `<table class="excel-table"><thead><tr>`;
     html += `<th class="col-corner">#</th>`;
-    const campHeaders = ["Camp ID", "Camp Name", "Date", "Target Quota", "Total Scanned", "To Check", "Reviewed", "Progress %", "Created At"];
+    const campHeaders = ["Camp ID", "Camp Name", "Target Group", "Date", "Target Quota", "Total Scanned", "To Check", "Reviewed", "Progress %", "Created At"];
     campHeaders.forEach((h, idx) => {
       const colLetter = String.fromCharCode(65 + (idx % 26));
       html += `<th>
@@ -1870,10 +2755,12 @@ export function renderExcelPreview(sheetName = currentExcelSheet) {
     html += `</tr></thead><tbody>`;
 
     state.camps.forEach((c, idx) => {
+      const isPaed = c.target_group === 'paediatric';
       html += `<tr>`;
       html += `<td class="row-num">${idx + 1}</td>`;
       html += `<td>${escapeHtml(c.id)}</td>`;
       html += `<td><b>${escapeHtml(c.name)}</b></td>`;
+      html += `<td><span class="tag" style="font-size:10px;background:${isPaed ? '#E0F2FE;color:#0284C7' : '#FCE7F3;color:#BE185D'};">${isPaed ? 'Paediatric' : 'Adult'}</span></td>`;
       html += `<td>${escapeHtml(c.date_str || '')}</td>`;
       html += `<td>${c.expected_records || 100}</td>`;
       html += `<td>${c.total_scanned || 0}</td>`;
@@ -2279,6 +3166,29 @@ function formatRelativeTime(isoString) {
   }
 }
 
+// ── Phase 4: Offline Queue Badge & Status helpers ────────────────────────
+function _updateOfflineBadge(count) {
+  // Update the floating offline banner badge
+  const badge = document.getElementById('offline-queue-badge');
+  if (badge) badge.textContent = count > 0 ? `${count} pending` : '';
+  // Also update any persistent icon in the header if present
+  const headerBadge = document.getElementById('header-offline-badge');
+  if (headerBadge) {
+    headerBadge.textContent = count > 0 ? String(count) : '';
+    headerBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function showOfflineQueueStatus() {
+  offlineQueue.length().then((n) => {
+    if (n === 0) {
+      toast('✅ Offline queue is empty — all scans uploaded.');
+    } else {
+      toast(`📵 ${n} scan(s) encrypted in offline queue. Will auto-sync on network restore.`);
+    }
+  });
+}
+
 // Global App Export
 window.app = {
   go,
@@ -2316,6 +3226,7 @@ window.app = {
   captureCurrentPage,
   onFileUploaded,
   loadDemoSamples,
+  swapScanPages,
   saveAndExtract,
   openReview,
   toggleReviewDocs,
@@ -2324,12 +3235,27 @@ window.app = {
   clearSignature,
   approveAndSaveRecord,
   saveDraftReview,
+  onVitalsChanged,
+  onConsentChanged,
+  updateReviewClinicalAlerts,
+  markPhysicalExamNormal,
+  showMissingConfirmationModal,
+  closeMissingConfirmModal,
+  confirmApproveDespiteMissing,
+  printReferralSlip,
+  toggleTorch,
+  showQualityAlertModal,
+  retryCaptureFromAlert,
+  turnOnTorchAndRetake,
+  bypassQualityAlert,
   eraseActiveRecord,
   syncSupabaseCloud,
   renderRecords,
   setRecordsFilter,
   filterRecords,
   exportExcel,
+  exportAdultExcel,
+  exportPaediatricExcel,
   exportCampExcel,
   openCampRecords,
   scanForCamp,
@@ -2350,28 +3276,106 @@ window.app = {
   closeBuyAddonModal,
   buyAddonPack,
   resetDemoData,
-  finishSplash: () => window.finishSplash && window.finishSplash()
+  toggleTheme,
+  initTheme,
+  finishSplash: () => window.finishSplash && window.finishSplash(),
+  showOfflineQueueStatus,
 };
 
 // Initial App Boot Sequence
 function initApp() {
+  initTheme();
   updateDoctorDisplays();
   renderHome();
   initPinBoxes();
   resetSessionIdleTimer();
 
-  const splashVid = document.getElementById('splash-video');
+  // ── Phase 4: Encrypted Offline Queue + ServiceWorker ────────────────────
+  (async () => {
+    try {
+      const { supported, queueLength } = await offlineQueue.init((evt) => {
+        // Update badge on every queue event
+        offlineQueue.length().then((n) => {
+          state.offlineQueueLength = n;
+          _updateOfflineBadge(n);
+        });
+        if (evt.type === 'synced') {
+          toast(`✅ Queued scan #${evt.id} synced to server.`);
+        } else if (evt.type === 'drain_complete' && evt.synced > 0) {
+          toast(`📡 ${evt.synced} offline scan(s) uploaded successfully.`);
+        } else if (evt.type === 'expired') {
+          toast(`⏱ Queued scan #${evt.id} expired (> 48 h) and was purged.`, 'warning');
+        } else if (evt.type === 'permanent_error') {
+          toast(`❌ Queued scan #${evt.id} failed permanently and was removed.`, 'error');
+        }
+      });
+
+      if (supported) {
+        state.offlineQueueLength = queueLength;
+        _updateOfflineBadge(queueLength);
+        // Register SW and wire drain to the direct extract API call
+        await registerOfflineSupport(
+          (p1, p2, hdrs) => api.extractPagesDirect(p1, p2, hdrs)
+        );
+        // Drain immediately if we're online and have pending scans
+        if (navigator.onLine && queueLength > 0) {
+          offlineQueue.drain((p1, p2, hdrs) => api.extractPagesDirect(p1, p2, hdrs));
+        }
+      }
+    } catch (err) {
+      console.warn('[OfflineQueue] Init error:', err);
+    }
+  })();
+
+  // Network status banner
+  function _updateNetworkBanner() {
+    const online = navigator.onLine;
+    let banner = document.getElementById('offline-network-banner');
+    if (!online) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'offline-network-banner';
+        banner.setAttribute('role', 'alert');
+        banner.style.cssText = [
+          'position:fixed;bottom:0;left:0;right:0;z-index:9999',
+          'background:linear-gradient(90deg,#1e293b,#0f172a)',
+          'color:#f8fafc;padding:10px 18px;display:flex;align-items:center;gap:10px',
+          'font-size:13px;font-weight:600;letter-spacing:.01em;box-shadow:0 -2px 12px rgba(0,0,0,.4)',
+          'border-top:2px solid #f59e0b',
+        ].join(';');
+        banner.innerHTML = `
+          <span style="font-size:18px">📵</span>
+          <span>You are offline. Scans will be <strong>encrypted &amp; queued</strong> and synced when connectivity returns.</span>
+          <span id="offline-queue-badge" style="margin-left:auto;background:#f59e0b;color:#0f172a;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700"></span>`;
+        document.body.appendChild(banner);
+      }
+    } else if (banner) {
+      banner.remove();
+    }
+  }
+  window.addEventListener('online', _updateNetworkBanner);
+  window.addEventListener('offline', _updateNetworkBanner);
+  _updateNetworkBanner();
+  // ── End Phase 4 ──────────────────────────────────────────────────────────
+
+
   const splashBar = document.getElementById('splash-progress-bar');
   const splashText = document.getElementById('splash-status-text');
   const splashPct = document.getElementById('splash-pct');
+  const splashPillText = document.getElementById('splash-status-pill-text');
   const splashEl = document.getElementById('splash');
 
   let transitioned = false;
   let failsafeTimeout = null;
+  let animFrameId = null;
 
   const finishSplash = () => {
     if (transitioned) return;
     transitioned = true;
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
     if (failsafeTimeout) {
       clearTimeout(failsafeTimeout);
       failsafeTimeout = null;
@@ -2383,18 +3387,22 @@ function initApp() {
     if (splashBar) splashBar.style.width = '100%';
     if (splashPct) splashPct.textContent = '100%';
     if (splashText) splashText.textContent = 'Ready · Optical Intake Platform';
+    if (splashPillText) splashPillText.textContent = 'CLINICAL VISION AI · READY';
 
     const sp = document.getElementById('splash');
     if (sp) {
-      sp.style.transition = 'opacity 0.35s ease-out';
+      sp.style.transition = 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.45s ease';
       sp.style.opacity = '0';
+      sp.style.transform = 'scale(1.03)';
+      sp.style.filter = 'blur(8px)';
+      sp.style.pointerEvents = 'none';
       setTimeout(() => {
-        sp.classList.remove('on');
+        sp.classList.add('hidden');
         sp.style.display = 'none';
         if (state.currentScreen === 'splash') {
           go('landing');
         }
-      }, 350);
+      }, 450);
     } else {
       if (state.currentScreen === 'splash') {
         go('landing');
@@ -2405,71 +3413,52 @@ function initApp() {
   // Expose globally for skip button
   window.finishSplash = finishSplash;
 
-  if (splashVid) {
-    splashVid.muted = true;
-    splashVid.playsInline = true;
-    splashVid.setAttribute('playsinline', '');
-    splashVid.setAttribute('muted', '');
+  // Fluid CSS / JS Optical Scanner Animation Timeline
+  const stages = [
+    { at: 0, text: "Initializing Optical Vision AI Core...", pill: "CLINICAL VISION AI · INITIALIZING" },
+    { at: 22, text: "Calibrating Dual-Page Intake Grids...", pill: "DUAL-PAGE ALIGNMENT · CALIBRATING" },
+    { at: 48, text: "Connecting Medical Camp Store & SQLite...", pill: "ENCRYPTED STORAGE · CONNECTED" },
+    { at: 74, text: "Syncing Clinical Vitals Knowledge Engine...", pill: "VITALS KNOWLEDGE ENGINE · SYNCED" },
+    { at: 92, text: "Ready · Launching Optical Intake Platform", pill: "CLINICAL VISION AI · READY" }
+  ];
 
-    const stages = [
-      { at: 0, text: "Initializing Vision AI Core..." },
-      { at: 25, text: "Connecting Medical Camp Store..." },
-      { at: 50, text: "Calibrating Dual-Page Intake Schema..." },
-      { at: 75, text: "Syncing Clinical Vitals Knowledge Base..." },
-      { at: 92, text: "Ready · Optical Intake Platform" }
-    ];
+  const isFrozenDemo = window.location.search.includes('freeze');
+  const splashDurationMs = isFrozenDemo ? 30000 : 2600;
+  const splashStartTime = performance.now();
 
-    splashVid.addEventListener('timeupdate', () => {
-      if (splashVid.duration && isFinite(splashVid.duration)) {
-        const pct = Math.min(100, Math.round((splashVid.currentTime / splashVid.duration) * 100));
-        if (splashBar) splashBar.style.width = `${pct}%`;
-        if (splashPct) splashPct.textContent = `${pct}%`;
+  function stepSplash(currentTime) {
+    if (transitioned) return;
+    const elapsed = currentTime - splashStartTime;
+    const progress = Math.min(1, elapsed / splashDurationMs);
+    const pct = Math.min(100, Math.round(progress * 100));
 
-        if (splashText) {
-          const current = [...stages].reverse().find(s => pct >= s.at);
-          if (current) splashText.textContent = current.text;
-        }
-      }
-    });
+    if (splashBar) splashBar.style.width = `${pct}%`;
+    if (splashPct) splashPct.textContent = `${pct}%`;
 
-    // Primary: advance ONLY when the video has fully finished playing
-    splashVid.addEventListener('ended', () => {
-      finishSplash();
-    }, { once: true });
-
-    // Arm emergency failsafe: 13 seconds (video is 10s) only if video stalls
-    failsafeTimeout = setTimeout(() => {
-      console.info("Failsafe timer triggered for splash animation.");
-      finishSplash();
-    }, 13000);
-
-    // If metadata loads, sync duration
-    splashVid.addEventListener('loadedmetadata', () => {
-      if (splashVid.duration && isFinite(splashVid.duration)) {
-        if (failsafeTimeout) clearTimeout(failsafeTimeout);
-        failsafeTimeout = setTimeout(() => {
-          finishSplash();
-        }, (splashVid.duration * 1000) + 2500);
-      }
-    }, { once: true });
-
-    // Begin full playback
-    const p = splashVid.play();
-    if (p && typeof p.catch === 'function') {
-      p.catch(err => {
-        console.warn('Splash video autoplay note:', err);
-        // If autoplay was blocked, allow click to start or fallback
-        if (splashEl) {
-          splashEl.addEventListener('click', () => {
-            splashVid.play().catch(() => finishSplash());
-          }, { once: true });
-        }
-      });
+    const currentStage = [...stages].reverse().find(s => pct >= s.at);
+    if (currentStage) {
+      if (splashText) splashText.textContent = currentStage.text;
+      if (splashPillText) splashPillText.textContent = currentStage.pill;
     }
-  } else {
-    // No video element fallback
-    setTimeout(finishSplash, 1500);
+
+    if (progress < 1) {
+      animFrameId = requestAnimationFrame(stepSplash);
+    } else {
+      setTimeout(finishSplash, 200);
+    }
   }
+
+  animFrameId = requestAnimationFrame(stepSplash);
+
+  // Allow clicking splash to instantly enter (unless in freeze mode)
+  if (splashEl && !isFrozenDemo) {
+    splashEl.addEventListener('click', () => {
+      finishSplash();
+    }, { once: true });
+  }
+
+  // Backup failsafe timer
+  failsafeTimeout = setTimeout(finishSplash, isFrozenDemo ? 35000 : 3500);
 }
 
 // Run boot sequence reliably
@@ -2478,4 +3467,124 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
+
+// --- Unified AI Pipeline Settings Modal Controller ---
+window.openAISettingsModal = async function() {
+  const modal = document.getElementById('ai-settings-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const input = document.getElementById('modal-ai-api-key');
+  const storedKey = localStorage.getItem('i2i_ai_api_key') || '';
+  if (input) {
+    input.value = storedKey;
+  }
+  window.updateAIKeyDetection(storedKey);
+  try {
+    const status = await api.getAIStatus();
+    if (status && status.unified_pipeline) {
+      if (!storedKey) {
+        const provEl = document.getElementById('modal-ai-active-provider');
+        if (provEl) provEl.textContent = `${status.provider_name} (Server .env)`;
+        const pModel = document.getElementById('modal-ai-primary-model');
+        if (pModel) pModel.textContent = status.primary_model || '-';
+        const fbModel = document.getElementById('modal-ai-fallback-model');
+        if (fbModel) fbModel.textContent = status.fallback_model || '-';
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch /api/ai/status:", e);
+  }
+};
+
+window.closeAISettingsModal = function() {
+  const modal = document.getElementById('ai-settings-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.updateAIKeyDetection = function(keyVal) {
+  const k = (keyVal || '').trim();
+  const dot = document.getElementById('modal-ai-detect-dot');
+  const label = document.getElementById('modal-ai-detect-label');
+  const provEl = document.getElementById('modal-ai-active-provider');
+  const pModel = document.getElementById('modal-ai-primary-model');
+  const fbModel = document.getElementById('modal-ai-fallback-model');
+
+  if (!k) {
+    if (dot) dot.style.background = '#94a3b8';
+    if (label) label.textContent = 'Auto-detect ready: Paste any supported AI key';
+    if (provEl) provEl.textContent = 'Using Server Default (.env)';
+    if (pModel) pModel.textContent = '-';
+    if (fbModel) fbModel.textContent = '-';
+    return;
+  }
+
+  let provider = 'unknown';
+  let provName = 'Unknown Provider';
+  let primaryModel = '-';
+  let fallbackModel = '-';
+
+  if (k.startsWith('nvapi-')) {
+    provider = 'nvidia';
+    provName = 'NVIDIA NIM (Auto-detected)';
+    primaryModel = 'meta/llama-3.2-11b-vision-instruct';
+    fallbackModel = 'meta/llama-3.2-90b-vision-instruct';
+  } else if (k.startsWith('gsk_')) {
+    provider = 'groq';
+    provName = 'Groq Vision (Auto-detected)';
+    primaryModel = 'qwen/qwen3.8-27b';
+    fallbackModel = 'qwen/qwen3.8-27b';
+  } else if (k.startsWith('AIzaSy') || k.startsWith('AQ.')) {
+    provider = 'gemini';
+    provName = 'Google Gemini Vision (Auto-detected)';
+    primaryModel = 'gemini-3.6-flash';
+    fallbackModel = 'gemini-3.1-pro-preview';
+  } else if (k.startsWith('sk-ant-')) {
+    provider = 'anthropic';
+    provName = 'Anthropic Claude (Auto-detected)';
+    primaryModel = 'claude-3-5-sonnet-20241022';
+    fallbackModel = 'claude-3-5-sonnet-20241022';
+  } else if (k.startsWith('sk-or-')) {
+    provider = 'openrouter';
+    provName = 'OpenRouter (Auto-detected)';
+    primaryModel = 'google/gemini-flash-1.5';
+    fallbackModel = 'meta-llama/llama-3.2-11b-vision-instruct';
+  } else if (k.startsWith('sk-')) {
+    provider = 'openai';
+    provName = 'OpenAI Vision (Auto-detected)';
+    primaryModel = 'gpt-4o-mini';
+    fallbackModel = 'gpt-4o';
+  } else {
+    provName = 'Custom Key (Auto-detecting provider)';
+  }
+
+  if (dot) dot.style.background = provider !== 'unknown' ? '#10B981' : '#F59E0B';
+  if (label) label.textContent = provider !== 'unknown' ? `Valid format recognized: ${provName}` : 'Custom key format entered';
+  if (provEl) provEl.textContent = provName;
+  if (pModel) pModel.textContent = primaryModel;
+  if (fbModel) fbModel.textContent = fallbackModel;
+};
+
+window.saveAISettings = function() {
+  const input = document.getElementById('modal-ai-api-key');
+  const k = input ? input.value.trim() : '';
+  if (k) {
+    localStorage.setItem('i2i_ai_api_key', k);
+    toast('AI API key activated for all future extractions! ⚡');
+  } else {
+    localStorage.removeItem('i2i_ai_api_key');
+  }
+  window.closeAISettingsModal();
+};
+
+window.clearAISettings = function() {
+  localStorage.removeItem('i2i_ai_api_key');
+  localStorage.removeItem('i2i_ai_provider');
+  localStorage.removeItem('i2i_ai_model');
+  const input = document.getElementById('modal-ai-api-key');
+  if (input) input.value = '';
+  window.updateAIKeyDetection('');
+  toast('Reset to default server environment keys (.env)');
+  window.closeAISettingsModal();
+};
+
 

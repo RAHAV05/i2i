@@ -1,0 +1,1857 @@
+{
+  "version": "1.0.0",
+  "total_short_forms": 148,
+  "total_controlled_terms": 277,
+  "short_forms": {
+    "BP": {
+      "expansion": "Blood pressure",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "BP / B.P / Bp"
+    },
+    "B.P": {
+      "expansion": "Blood pressure",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "BP / B.P / Bp"
+    },
+    "Bp": {
+      "expansion": "Blood pressure",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "BP / B.P / Bp"
+    },
+    "PR": {
+      "expansion": "Pulse rate",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "PR / P.R"
+    },
+    "P.R": {
+      "expansion": "Pulse rate",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "PR / P.R"
+    },
+    "HR": {
+      "expansion": "Heart rate",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "HR"
+    },
+    "RR": {
+      "expansion": "Respiratory rate",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "RR"
+    },
+    "SpO2": {
+      "expansion": "Oxygen saturation",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "SpO2 / SPO2"
+    },
+    "SPO2": {
+      "expansion": "Oxygen saturation",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "SpO2 / SPO2"
+    },
+    "Temp": {
+      "expansion": "Temperature",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Temp / T"
+    },
+    "T": {
+      "expansion": "Temperature",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Temp / T"
+    },
+    "Wt": {
+      "expansion": "Weight",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Wt / wt"
+    },
+    "wt": {
+      "expansion": "Weight",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Wt / wt"
+    },
+    "Ht": {
+      "expansion": "Height",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Ht / ht"
+    },
+    "ht": {
+      "expansion": "Height",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Ht / ht"
+    },
+    "BMI": {
+      "expansion": "Body mass index",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "BMI"
+    },
+    "WC": {
+      "expansion": "Waist circumference",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "WC"
+    },
+    "HC": {
+      "expansion": "Hip circumference",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "HC"
+    },
+    "WHR": {
+      "expansion": "Waist-hip ratio",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "WHR"
+    },
+    "CBG": {
+      "expansion": "Capillary blood glucose",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "CBG"
+    },
+    "RBS": {
+      "expansion": "Random blood sugar",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "RBS"
+    },
+    "FBS": {
+      "expansion": "Fasting blood sugar",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "FBS"
+    },
+    "Hb": {
+      "expansion": "Haemoglobin",
+      "group": "vital signs & anthropometry",
+      "raw_entry": "Hb"
+    },
+    "C": {
+      "expansion": "Not a known case of",
+      "group": "history & complaints",
+      "raw_entry": "N/K/C/O"
+    },
+    "O": {
+      "expansion": "On examination",
+      "group": "clinical examination",
+      "raw_entry": "O/E"
+    },
+    "H": {
+      "expansion": "Family history",
+      "group": "history & complaints",
+      "raw_entry": "F/H"
+    },
+    "No H": {
+      "expansion": "No history of",
+      "group": "history & complaints",
+      "raw_entry": "No H/O"
+    },
+    "P": {
+      "expansion": "Per abdomen",
+      "group": "clinical examination",
+      "raw_entry": "P/A"
+    },
+    "F": {
+      "expansion": "Follow-up",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "F/U"
+    },
+    "FH": {
+      "expansion": "Family history of",
+      "group": "history & complaints",
+      "raw_entry": "FH/O"
+    },
+    "K": {
+      "expansion": "Not a known case of",
+      "group": "history & complaints",
+      "raw_entry": "N/K/C/O"
+    },
+    "N": {
+      "expansion": "Normal",
+      "group": "clinical examination",
+      "raw_entry": "N"
+    },
+    "No C": {
+      "expansion": "No complaints",
+      "group": "history & complaints",
+      "raw_entry": "No C/O"
+    },
+    "Asymp": {
+      "expansion": "Asymptomatic",
+      "group": "history & complaints",
+      "raw_entry": "Asymp"
+    },
+    "E": {
+      "expansion": "General examination",
+      "group": "clinical examination",
+      "raw_entry": "G/E"
+    },
+    "OE": {
+      "expansion": "On examination",
+      "group": "clinical examination",
+      "raw_entry": "OE"
+    },
+    "G": {
+      "expansion": "General examination",
+      "group": "clinical examination",
+      "raw_entry": "G/E"
+    },
+    "A": {
+      "expansion": "Per abdomen",
+      "group": "clinical examination",
+      "raw_entry": "P/A"
+    },
+    "CVS": {
+      "expansion": "Cardiovascular system",
+      "group": "clinical examination",
+      "raw_entry": "CVS"
+    },
+    "RS": {
+      "expansion": "Respiratory system",
+      "group": "clinical examination",
+      "raw_entry": "RS"
+    },
+    "CNS": {
+      "expansion": "Central nervous system",
+      "group": "clinical examination",
+      "raw_entry": "CNS"
+    },
+    "ENT": {
+      "expansion": "Ear, nose and throat",
+      "group": "clinical examination",
+      "raw_entry": "ENT"
+    },
+    "Abd": {
+      "expansion": "Abdomen",
+      "group": "clinical examination",
+      "raw_entry": "Abd"
+    },
+    "B": {
+      "expansion": "Bilateral",
+      "group": "clinical examination",
+      "raw_entry": "B/L"
+    },
+    "L": {
+      "expansion": "Unilateral",
+      "group": "clinical examination",
+      "raw_entry": "U/L"
+    },
+    "R": {
+      "expansion": "Review",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "R/V"
+    },
+    "Rt": {
+      "expansion": "Right",
+      "group": "clinical examination",
+      "raw_entry": "R / Rt"
+    },
+    "Lt": {
+      "expansion": "Left",
+      "group": "clinical examination",
+      "raw_entry": "L / Lt"
+    },
+    "UL": {
+      "expansion": "Upper limb",
+      "group": "clinical examination",
+      "raw_entry": "UL"
+    },
+    "LL": {
+      "expansion": "Lower limb",
+      "group": "clinical examination",
+      "raw_entry": "LL"
+    },
+    "U": {
+      "expansion": "Follow-up",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "F/U"
+    },
+    "NAD": {
+      "expansion": "No abnormality detected",
+      "group": "clinical examination",
+      "raw_entry": "NAD"
+    },
+    "WNL": {
+      "expansion": "Within normal limits",
+      "group": "clinical examination",
+      "raw_entry": "WNL"
+    },
+    "Normal": {
+      "expansion": "Normal examination",
+      "group": "clinical examination",
+      "raw_entry": "Normal"
+    },
+    "+": {
+      "expansion": "Present/positive",
+      "group": "symbols & clinical notation",
+      "raw_entry": "+"
+    },
+    "\u2212": {
+      "expansion": "Absent/negative",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2212"
+    },
+    "HTN": {
+      "expansion": "Hypertension",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "HTN"
+    },
+    "Htn": {
+      "expansion": "Hypertension",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Htn"
+    },
+    "BP \u2191": {
+      "expansion": "Elevated blood pressure",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "BP \u2191"
+    },
+    "BP high": {
+      "expansion": "Elevated blood pressure",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "BP high"
+    },
+    "BP normal": {
+      "expansion": "Blood pressure within normal range",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "BP normal"
+    },
+    "DM": {
+      "expansion": "Diabetes mellitus",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "DM"
+    },
+    "DM2": {
+      "expansion": "Type 2 diabetes mellitus",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "DM2 / T2DM"
+    },
+    "T2DM": {
+      "expansion": "Type 2 diabetes mellitus",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "T2DM"
+    },
+    "Sugar \u2191": {
+      "expansion": "Elevated blood glucose",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Sugar \u2191"
+    },
+    "Sugar high": {
+      "expansion": "Elevated blood glucose",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Sugar high"
+    },
+    "Dyslipid": {
+      "expansion": "Dyslipidaemia",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Dyslipid"
+    },
+    "DLP": {
+      "expansion": "Dyslipidaemia",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "DLP"
+    },
+    "Obese": {
+      "expansion": "Obesity",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Obese"
+    },
+    "Overwt": {
+      "expansion": "Overweight",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Overwt"
+    },
+    "OW": {
+      "expansion": "Overweight",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "OW"
+    },
+    "Underwt": {
+      "expansion": "Underweight",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "Underwt"
+    },
+    "CV risk": {
+      "expansion": "Cardiovascular risk",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "CV risk"
+    },
+    "NCD": {
+      "expansion": "Non-communicable disease",
+      "group": "ncd & risk-factor terminology",
+      "raw_entry": "NCD"
+    },
+    "Adv": {
+      "expansion": "Advice",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Adv"
+    },
+    "Advised": {
+      "expansion": "Advice given",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Advised"
+    },
+    "Diet adv": {
+      "expansion": "Dietary advice",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Diet adv"
+    },
+    "Exercise adv": {
+      "expansion": "Exercise advice",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Exercise adv"
+    },
+    "LSM": {
+      "expansion": "Lifestyle modification",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "LSM"
+    },
+    "FU": {
+      "expansion": "Follow-up",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "FU"
+    },
+    "Review": {
+      "expansion": "Review advised",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Review"
+    },
+    "V": {
+      "expansion": "Review",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "R/V"
+    },
+    "Refer": {
+      "expansion": "Referral advised",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Refer"
+    },
+    "Ref": {
+      "expansion": "Referred",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Ref"
+    },
+    "Ref to physician": {
+      "expansion": "Referred to physician",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Ref to physician"
+    },
+    "Ref to hospital": {
+      "expansion": "Referred to hospital",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Ref to hospital"
+    },
+    "Urgent ref": {
+      "expansion": "Urgent referral",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Urgent ref"
+    },
+    "ER": {
+      "expansion": "Emergency room",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "ER"
+    },
+    "ED": {
+      "expansion": "Emergency department",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "ED"
+    },
+    "Rx": {
+      "expansion": "Treatment/prescription",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Rx"
+    },
+    "Meds": {
+      "expansion": "Medications",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Meds"
+    },
+    "Continue meds": {
+      "expansion": "Continue prescribed medication",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Continue meds"
+    },
+    "Regular meds": {
+      "expansion": "Regular medication use",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Regular meds"
+    },
+    "Compliance poor": {
+      "expansion": "Poor medication adherence",
+      "group": "advice, follow-up & referral",
+      "raw_entry": "Compliance poor"
+    },
+    "Obesity": {
+      "expansion": "Obesity",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Obesity"
+    },
+    "Anemia": {
+      "expansion": "Anaemia",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Anemia"
+    },
+    "Nutritional anaemia": {
+      "expansion": "Nutritional anaemia",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Nutritional anaemia"
+    },
+    "URI": {
+      "expansion": "Upper respiratory tract infection",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "URI"
+    },
+    "URTI": {
+      "expansion": "Upper respiratory tract infection",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "URTI"
+    },
+    "LRTI": {
+      "expansion": "Lower respiratory tract infection",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "LRTI"
+    },
+    "GERD": {
+      "expansion": "Gastroesophageal reflux disease",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "GERD"
+    },
+    "OA": {
+      "expansion": "Osteoarthritis",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "OA"
+    },
+    "LBP": {
+      "expansion": "Low back pain",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "LBP"
+    },
+    "Migraine": {
+      "expansion": "Migraine",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Migraine"
+    },
+    "Asthma": {
+      "expansion": "Bronchial asthma",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Asthma"
+    },
+    "COPD": {
+      "expansion": "Chronic obstructive pulmonary disease",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "COPD"
+    },
+    "Eczema": {
+      "expansion": "Eczema",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Eczema"
+    },
+    "Dermatitis": {
+      "expansion": "Dermatitis",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Dermatitis"
+    },
+    "Acne": {
+      "expansion": "Acne",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Acne"
+    },
+    "Rhinitis": {
+      "expansion": "Rhinitis",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Rhinitis"
+    },
+    "Conjunctivitis": {
+      "expansion": "Conjunctivitis",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "Conjunctivitis"
+    },
+    "R.E": {
+      "expansion": "Refractive error",
+      "group": "common diagnoses / conditions",
+      "raw_entry": "R.E"
+    },
+    "\u2191": {
+      "expansion": "Increased",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2191"
+    },
+    "\u2193": {
+      "expansion": "Decreased",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2193"
+    },
+    "\u2192": {
+      "expansion": "Leads to / proceed / refer, depending on context",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2192"
+    },
+    "++": {
+      "expansion": "Moderately positive / degree of positivity \u2014 context dependent",
+      "group": "symbols & clinical notation",
+      "raw_entry": "++"
+    },
+    "+++": {
+      "expansion": "Strongly positive / degree of positivity \u2014 context dependent",
+      "group": "symbols & clinical notation",
+      "raw_entry": "+++"
+    },
+    "\u00b1": {
+      "expansion": "Equivocal / variable",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u00b1"
+    },
+    "?": {
+      "expansion": "Suspected / query",
+      "group": "symbols & clinical notation",
+      "raw_entry": "?"
+    },
+    "~": {
+      "expansion": "Approximately",
+      "group": "symbols & clinical notation",
+      "raw_entry": "~"
+    },
+    "<": {
+      "expansion": "Less than",
+      "group": "symbols & clinical notation",
+      "raw_entry": "<"
+    },
+    ">": {
+      "expansion": "Greater than",
+      "group": "symbols & clinical notation",
+      "raw_entry": ">"
+    },
+    "\u2264": {
+      "expansion": "Less than or equal to",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2264"
+    },
+    "\u2265": {
+      "expansion": "Greater than or equal to",
+      "group": "symbols & clinical notation",
+      "raw_entry": "\u2265"
+    },
+    "OD": {
+      "expansion": "Once daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "OD"
+    },
+    "BD": {
+      "expansion": "Twice daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "BD / BID"
+    },
+    "BID": {
+      "expansion": "Twice daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "BD / BID"
+    },
+    "TDS": {
+      "expansion": "Three times daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "TDS / TID"
+    },
+    "TID": {
+      "expansion": "Three times daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "TDS / TID"
+    },
+    "QID": {
+      "expansion": "Four times daily",
+      "group": "medication / prescription short forms",
+      "raw_entry": "QID"
+    },
+    "HS": {
+      "expansion": "At bedtime",
+      "group": "medication / prescription short forms",
+      "raw_entry": "HS"
+    },
+    "SOS": {
+      "expansion": "As needed",
+      "group": "medication / prescription short forms",
+      "raw_entry": "SOS / PRN"
+    },
+    "PRN": {
+      "expansion": "As needed",
+      "group": "medication / prescription short forms",
+      "raw_entry": "SOS / PRN"
+    },
+    "STAT": {
+      "expansion": "Immediately",
+      "group": "medication / prescription short forms",
+      "raw_entry": "STAT"
+    },
+    "AC": {
+      "expansion": "Before meals",
+      "group": "medication / prescription short forms",
+      "raw_entry": "AC"
+    },
+    "PC": {
+      "expansion": "After meals",
+      "group": "medication / prescription short forms",
+      "raw_entry": "PC"
+    },
+    "PO": {
+      "expansion": "By mouth/oral",
+      "group": "medication / prescription short forms",
+      "raw_entry": "PO"
+    },
+    "IM": {
+      "expansion": "Intramuscular",
+      "group": "medication / prescription short forms",
+      "raw_entry": "IM"
+    },
+    "IV": {
+      "expansion": "Intravenous",
+      "group": "medication / prescription short forms",
+      "raw_entry": "IV"
+    },
+    "SC": {
+      "expansion": "Subcutaneous",
+      "group": "medication / prescription short forms",
+      "raw_entry": "SC / SQ"
+    },
+    "SQ": {
+      "expansion": "Subcutaneous",
+      "group": "medication / prescription short forms",
+      "raw_entry": "SC / SQ"
+    },
+    "Tab": {
+      "expansion": "Tablet",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Tab"
+    },
+    "Cap": {
+      "expansion": "Capsule",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Cap"
+    },
+    "Syr": {
+      "expansion": "Syrup",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Syr"
+    },
+    "Inj": {
+      "expansion": "Injection",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Inj"
+    },
+    "Oint": {
+      "expansion": "Ointment",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Oint"
+    },
+    "Cream": {
+      "expansion": "Cream",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Cream"
+    },
+    "Drops": {
+      "expansion": "Drops",
+      "group": "medication / prescription short forms",
+      "raw_entry": "Drops"
+    }
+  },
+  "controlled_terms": [
+    {
+      "term": "Visual acuity",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Distance visual acuity",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Near visual acuity",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Refractive error (RE)",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Myopia",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Hypermetropia",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Astigmatism",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Presbyopia",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Spectacle use",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Colour vision defect",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Squint",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Strabismus",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Conjunctivitis",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Dry eye",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Cataract",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Corneal opacity",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Ptosis",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Amblyopia",
+      "topic": "eye / ophthalmology"
+    },
+    {
+      "term": "Wax impaction",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Cerumen impaction",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Ear discharge",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Otorrhoea",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Earache",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Otalgia",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Hearing loss",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Conductive hearing loss (CHL)",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Sensorineural hearing loss (SNHL)",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Tinnitus",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Otitis externa",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Otitis media",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Acute otitis media (AOM)",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Chronic suppurative otitis media (CSOM)",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Tympanic membrane perforation",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Retracted tympanic membrane",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Grommet insertion",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Tympanoplasty",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Myringotomy",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Mastoidectomy",
+      "topic": "ent \u2013 ear"
+    },
+    {
+      "term": "Nasal obstruction",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Nasal congestion",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Rhinorrhoea",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Epistaxis",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Deviated nasal septum (DNS)",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Turbinate hypertrophy",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Allergic rhinitis",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Sinusitis",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Nasal polyp",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Anosmia",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Hyposmia",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Adenoid hypertrophy",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Adenoidectomy",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Septoplasty",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Functional endoscopic sinus surgery (FESS)",
+      "topic": "ent \u2013 nose & sinuses"
+    },
+    {
+      "term": "Sore throat",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Dysphagia",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Odynophagia",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Tonsillitis",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Recurrent tonsillitis",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Tonsillar hypertrophy",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Tonsillolith",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Tonsillectomy",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Adenotonsillectomy",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Pharyngitis",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Laryngitis",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Hoarseness",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Dysphonia",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Mouth breathing",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Snoring",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Obstructive sleep apnoea (OSA)",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Halitosis",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Oral ulcer",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Cervical lymphadenopathy",
+      "topic": "ent \u2013 throat / oral"
+    },
+    {
+      "term": "Dental caries",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental cavity",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Retained deciduous tooth",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Missing tooth",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Impacted tooth",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Impacted third molar",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Gingivitis",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Periodontitis",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental plaque",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental calculus",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Gingival bleeding",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Bleeding on probing (BOP)",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Gingival recession",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Tooth mobility",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Malocclusion",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Crowding",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Spacing",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Proclination",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Crossbite",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Open bite",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Deep bite",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Increased overjet",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental fluorosis",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Enamel hypoplasia",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental attrition",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental abrasion",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental erosion",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Tooth sensitivity",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Xerostomia",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental scaling",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental restoration",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Root canal treatment (RCT)",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental extraction",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Dental crown",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Denture",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Orthodontic treatment",
+      "topic": "dental / oral health"
+    },
+    {
+      "term": "Cough",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Dry cough",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Productive cough",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Sputum",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Wheezing",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Breathlessness",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Dyspnoea",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Shortness of breath",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Chest tightness",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Bronchial asthma",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Bronchitis",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Pneumonia",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Upper respiratory tract infection (URTI)",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Lower respiratory tract infection (LRTI)",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Allergic rhinitis",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Recurrent respiratory infection",
+      "topic": "respiratory system"
+    },
+    {
+      "term": "Hypertension (HTN)",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Hypotension",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Tachycardia",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Bradycardia",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Palpitations",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Chest pain",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Syncope",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Presyncope",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Pedal oedema",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Heart murmur",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Congenital heart disease",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Rheumatic heart disease",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Cardiovascular disease (CVD)",
+      "topic": "cardiovascular system"
+    },
+    {
+      "term": "Overweight",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Obesity",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Underweight",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Anaemia",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Nutritional anaemia",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Pallor",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Icterus",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Cyanosis",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Clubbing",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Lymphadenopathy",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Oedema",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Dehydration",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Malnutrition",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Nutritional deficiency",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Iron deficiency",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Vitamin D deficiency",
+      "topic": "general / metabolic / nutrition"
+    },
+    {
+      "term": "Back pain",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Low back pain (LBP)",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Neck pain",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Joint pain",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Arthralgia",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Arthritis",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Osteoarthritis (OA)",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Myalgia",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Muscle weakness",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Flat foot",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Pes planus",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Knock knees",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Genu valgum",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Bow legs",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Genu varum",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Scoliosis",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Kyphosis",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Lordosis",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Postural abnormality",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Deformity",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Restricted range of movement (ROM)",
+      "topic": "musculoskeletal system"
+    },
+    {
+      "term": "Rash",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Dermatitis",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Eczema",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Acne",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Urticaria",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Pruritus",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Fungal infection",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Tinea",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Scabies",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Pediculosis",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Dandruff",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Seborrhoeic dermatitis",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Hyperpigmentation",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Hypopigmentation",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Vitiligo",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Birthmark",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Nevus",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Wart",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Scar",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Keloid",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Alopecia",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Hyperhidrosis",
+      "topic": "skin / dermatology"
+    },
+    {
+      "term": "Headache",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Migraine",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Dizziness",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Vertigo",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Syncope",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Seizure",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Convulsion",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Tremor",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Weakness",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Numbness",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Tingling",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Paraesthesia",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Neuropathy",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Facial palsy",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Developmental delay",
+      "topic": "neurological system"
+    },
+    {
+      "term": "Abdominal pain",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Gastritis",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Gastroesophageal reflux disease (GERD)",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Acidity",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Heartburn",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Nausea",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Vomiting",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Constipation",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Diarrhoea",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Indigestion",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Dyspepsia",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Worm infestation",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Jaundice",
+      "topic": "gastrointestinal system"
+    },
+    {
+      "term": "Dysuria",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Increased urinary frequency",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Urinary urgency",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Nocturia",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Polyuria",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Haematuria",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Urinary tract infection (UTI)",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Enuresis",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Menarche",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Menstrual irregularity",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Dysmenorrhoea",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Menorrhagia",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Amenorrhoea",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Leucorrhoea",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Polycystic ovary syndrome (PCOS)",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Polycystic ovarian disease (PCOD)",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Polyendocrine metabolic ovarian syndrome (PMOS)",
+      "topic": "genitourinary / adolescent health"
+    },
+    {
+      "term": "Tonsillectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Adenoidectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Adenotonsillectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Grommet insertion",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Tympanoplasty",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Myringotomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Mastoidectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Septoplasty",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Functional endoscopic sinus surgery (FESS)",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Appendectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Cholecystectomy",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Hernia repair",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Circumcision",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Cataract surgery",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Laser-assisted in situ keratomileusis (LASIK)",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Dental extraction",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Root canal treatment (RCT)",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Dental filling",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Dental scaling",
+      "topic": "previous surgeries / procedures"
+    },
+    {
+      "term": "Developmental delay",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Global developmental delay (GDD)",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Speech delay",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Language delay",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Motor delay",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Growth retardation",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Short stature",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Failure to thrive (FTT)",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Nutritional deficiency",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Recurrent infection",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Congenital anomaly",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Birth defect",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Autism spectrum disorder (ASD)",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Attention-deficit/hyperactivity disorder (ADHD)",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Cerebral palsy (CP)",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Intellectual disability",
+      "topic": "developmental / paediatric"
+    },
+    {
+      "term": "Learning disability",
+      "topic": "developmental / paediatric"
+    }
+  ]
+}

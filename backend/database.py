@@ -69,12 +69,172 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
                 location TEXT DEFAULT 'Chennai Health Camp',
                 created_by TEXT,
                 community_id TEXT,
+                target_group TEXT NOT NULL DEFAULT 'adult',
                 created_at TEXT NOT NULL,
                 updated_at TEXT
             );
         """)
         
-        # Records table
+        # Camps migrations
+        cursor.execute("PRAGMA table_info(camps);")
+        camp_cols = [r["name"] for r in cursor.fetchall()]
+        if "target_group" not in camp_cols:
+            cursor.execute("ALTER TABLE camps ADD COLUMN target_group TEXT DEFAULT 'adult';")
+
+        # Segregated Table 1: Adult Records
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS adult_records (
+                id TEXT PRIMARY KEY,
+                camp_id TEXT NOT NULL,
+                person_name TEXT NOT NULL,
+                age TEXT,
+                gender TEXT,
+                height TEXT,
+                weight TEXT,
+                blood_pressure TEXT,
+                pulse TEXT,
+                rbs TEXT,
+                waist_circumference TEXT,
+                ecg_notes TEXT,
+                echo_notes TEXT,
+                examination_details TEXT,
+                referral_details TEXT,
+                marital_status TEXT,
+                parent_spouse_name TEXT,
+                no_of_children TEXT,
+                address TEXT,
+                mobile_number TEXT,
+                blood_group TEXT,
+                dob TEXT,
+                admission_id TEXT,
+                moc_doc_id TEXT,
+                school_college_name TEXT,
+                staff_student_type TEXT,
+                shift TEXT,
+                year_of_study TEXT,
+                course_dept TEXT,
+                section TEXT,
+                medical_history TEXT DEFAULT '{}',
+                family_history TEXT DEFAULT '{}',
+                vision_category TEXT,
+                distant_vision_right TEXT,
+                distant_vision_left TEXT,
+                dental_status TEXT,
+                dental_abnormality TEXT,
+                dental_advice TEXT,
+                consent_given INTEGER DEFAULT 1,
+                consent_signature TEXT,
+                status TEXT NOT NULL CHECK(status IN ('needs_review', 'reviewed', 'approved', 'failed')) DEFAULT 'needs_review',
+                missing_fields TEXT NOT NULL DEFAULT '[]',
+                uncertain_fields TEXT NOT NULL DEFAULT '[]',
+                extraction_notes TEXT,
+                structured_record TEXT,
+                page1_preview TEXT,
+                page2_preview TEXT,
+                reviewer_notes TEXT,
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                approved_by TEXT,
+                approved_at TEXT,
+                scanned_by TEXT,
+                community_id TEXT,
+                edit_history TEXT DEFAULT '[]',
+                version INTEGER DEFAULT 1,
+                confidence_scores TEXT DEFAULT '{}',
+                locked_by TEXT,
+                locked_at TEXT,
+                original_ai_extraction TEXT,
+                quality_warning_bypassed TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (camp_id) REFERENCES camps(id) ON DELETE CASCADE
+            );
+        """)
+
+        # Segregated Table 2: Paediatric Records
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS paediatric_records (
+                id TEXT PRIMARY KEY,
+                camp_id TEXT NOT NULL,
+                person_name TEXT NOT NULL,
+                age TEXT,
+                gender TEXT,
+                height TEXT,
+                weight TEXT,
+                bmi TEXT,
+                bmi_centile REAL,
+                bmi_classification TEXT,
+                blood_pressure TEXT,
+                bp_percentile REAL,
+                bp_classification TEXT,
+                pulse TEXT,
+                spinal_caliper_atr REAL,
+                head_circumference TEXT,
+                muac TEXT,
+                screening_type TEXT,
+                school_name TEXT,
+                class_and_section TEXT,
+                admission_id TEXT,
+                moc_doc_id TEXT,
+                dob TEXT,
+                blood_group TEXT,
+                parent_guardian_name TEXT,
+                emergency_contact_phone TEXT,
+                address TEXT,
+                birth_history TEXT,
+                milestones TEXT,
+                immunization_status TEXT,
+                dietary_habits TEXT,
+                known_allergies TEXT,
+                vital_signs_status TEXT,
+                gait_status TEXT,
+                ears_hearing_status TEXT,
+                otoscopy_findings TEXT,
+                oral_cavity_throat TEXT,
+                lymph_nodes TEXT,
+                systemic_findings TEXT DEFAULT '{}',
+                vision_distant_right TEXT,
+                vision_distant_left TEXT,
+                color_vision TEXT,
+                squint_strabismus TEXT,
+                dental_caries TEXT,
+                malocclusion TEXT,
+                oral_hygiene TEXT,
+                examination_details TEXT,
+                referral_specialist TEXT,
+                referral_reason TEXT,
+                referral_details TEXT,
+                paediatric_alerts TEXT DEFAULT '[]',
+                consent_given INTEGER DEFAULT 1,
+                consent_signature TEXT,
+                status TEXT NOT NULL CHECK(status IN ('needs_review', 'reviewed', 'approved', 'failed')) DEFAULT 'needs_review',
+                missing_fields TEXT NOT NULL DEFAULT '[]',
+                uncertain_fields TEXT NOT NULL DEFAULT '[]',
+                extraction_notes TEXT,
+                structured_record TEXT,
+                page1_preview TEXT,
+                page2_preview TEXT,
+                reviewer_notes TEXT,
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                approved_by TEXT,
+                approved_at TEXT,
+                scanned_by TEXT,
+                community_id TEXT,
+                edit_history TEXT DEFAULT '[]',
+                version INTEGER DEFAULT 1,
+                confidence_scores TEXT DEFAULT '{}',
+                locked_by TEXT,
+                locked_at TEXT,
+                original_ai_extraction TEXT,
+                quality_warning_bypassed TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (camp_id) REFERENCES camps(id) ON DELETE CASCADE
+            );
+        """)
+
+        # Unified / Legacy Compatible Records table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS records (
                 id TEXT PRIMARY KEY,
@@ -99,6 +259,9 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
                 reviewed_at TEXT,
                 scanned_by TEXT,
                 community_id TEXT,
+                target_group TEXT NOT NULL DEFAULT 'adult',
+                is_paediatric INTEGER DEFAULT 0,
+                paediatric_alerts TEXT DEFAULT '[]',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (camp_id) REFERENCES camps(id) ON DELETE CASCADE
@@ -124,7 +287,6 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
             cursor.execute("ALTER TABLE records ADD COLUMN consent_given INTEGER DEFAULT 1;")
         if "consent_signature" not in rec_cols:
             cursor.execute("ALTER TABLE records ADD COLUMN consent_signature TEXT;")
-
         if "locked_by" not in rec_cols:
             cursor.execute("ALTER TABLE records ADD COLUMN locked_by TEXT;")
         if "locked_at" not in rec_cols:
@@ -133,6 +295,16 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
             cursor.execute("ALTER TABLE records ADD COLUMN approved_by TEXT;")
         if "approved_at" not in rec_cols:
             cursor.execute("ALTER TABLE records ADD COLUMN approved_at TEXT;")
+        if "original_ai_extraction" not in rec_cols:
+            cursor.execute("ALTER TABLE records ADD COLUMN original_ai_extraction TEXT;")
+        if "quality_warning_bypassed" not in rec_cols:
+            cursor.execute("ALTER TABLE records ADD COLUMN quality_warning_bypassed TEXT DEFAULT '[]';")
+        if "target_group" not in rec_cols:
+            cursor.execute("ALTER TABLE records ADD COLUMN target_group TEXT DEFAULT 'adult';")
+        if "is_paediatric" not in rec_cols:
+            cursor.execute("ALTER TABLE records ADD COLUMN is_paediatric INTEGER DEFAULT 0;")
+        if "paediatric_alerts" not in rec_cols:
+            cursor.execute("ALTER TABLE records ADD COLUMN paediatric_alerts TEXT DEFAULT '[]';")
 
         # Invites table (Single-use tokenized invites with TTL & role)
         cursor.execute("""
@@ -459,6 +631,8 @@ def list_camps_with_stats(db_path: str = DEFAULT_DB_PATH) -> List[Dict[str, Any]
                 c.name,
                 c.date_str,
                 c.expected_records,
+                c.location,
+                c.target_group,
                 c.created_at,
                 COUNT(r.id) AS total_scanned,
                 SUM(CASE WHEN r.status = 'needs_review' THEN 1 ELSE 0 END) AS to_check,
@@ -476,11 +650,14 @@ def list_camps_with_stats(db_path: str = DEFAULT_DB_PATH) -> List[Dict[str, Any]
             to_check = row["to_check"] or 0
             reviewed = row["reviewed"] or 0
             pct = round((scanned / expected * 100), 1) if expected > 0 else 0
+            tg = row["target_group"] if "target_group" in row.keys() and row["target_group"] else "adult"
             camps.append({
                 "id": row["id"],
                 "name": row["name"],
                 "date_str": row["date_str"],
                 "expected_records": expected,
+                "location": row["location"] if "location" in row.keys() else "Chennai",
+                "target_group": tg,
                 "total_scanned": scanned,
                 "to_check": to_check,
                 "reviewed": reviewed,
@@ -496,7 +673,7 @@ def get_camp_by_id(camp_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[Dic
         cursor = conn.cursor()
         cursor.execute("""
             SELECT 
-                c.id, c.name, c.date_str, c.expected_records, c.location, c.created_by, c.created_at,
+                c.id, c.name, c.date_str, c.expected_records, c.location, c.created_by, c.target_group, c.created_at,
                 COUNT(r.id) AS total_scanned,
                 SUM(CASE WHEN r.status = 'needs_review' THEN 1 ELSE 0 END) AS to_check,
                 SUM(CASE WHEN r.status IN ('reviewed', 'approved') THEN 1 ELSE 0 END) AS reviewed
@@ -508,6 +685,7 @@ def get_camp_by_id(camp_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[Dic
         row = cursor.fetchone()
         if not row:
             return None
+        tg = row["target_group"] if "target_group" in row.keys() and row["target_group"] else "adult"
         return {
             "id": row["id"],
             "name": row["name"],
@@ -515,18 +693,35 @@ def get_camp_by_id(camp_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[Dic
             "expected_records": row["expected_records"],
             "location": row["location"] if "location" in row.keys() else "Chennai",
             "created_by": row["created_by"] if "created_by" in row.keys() else None,
+            "target_group": tg,
             "total_scanned": row["total_scanned"] or 0,
             "to_check": row["to_check"] or 0,
             "reviewed": row["reviewed"] or 0,
             "created_at": row["created_at"]
         }
 
-def create_camp(name: str, expected_records: int, date_str: str = "Today", location: str = "Chennai Health Camp", created_by: Optional[str] = None, camp_id: Optional[str] = None, db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
+def create_camp(
+    name: str,
+    expected_records: int,
+    date_str: str = "Today",
+    location: str = "Chennai Health Camp",
+    created_by: Optional[str] = None,
+    camp_id: Optional[str] = None,
+    target_group: str = "adult",
+    db_path: str = DEFAULT_DB_PATH,
+    **kwargs
+) -> Dict[str, Any]:
     """Create a new camp and persist it."""
     # Backwards compatibility: detect if 4th positional argument was passed as db_path
     if location and (location.endswith(".db") or "/" in location or "\\" in location or location.startswith("/tmp") or (os.path.dirname(location) and os.path.exists(os.path.dirname(location)))):
         db_path = location
         location = "Chennai Health Camp"
+    if "target_group" in kwargs:
+        target_group = kwargs["target_group"]
+    target_group = (target_group or "adult").strip().lower()
+    if target_group not in ("adult", "paediatric"):
+        target_group = "adult"
+
     init_db(db_path)
     if not camp_id:
         camp_id = f"camp_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
@@ -534,9 +729,9 @@ def create_camp(name: str, expected_records: int, date_str: str = "Today", locat
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO camps (id, name, date_str, expected_records, location, created_by, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """, (camp_id, name.strip(), date_str, max(1, expected_records), location, created_by, now, now))
+            INSERT OR REPLACE INTO camps (id, name, date_str, expected_records, location, created_by, target_group, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (camp_id, name.strip(), date_str, max(1, expected_records), location, created_by, target_group, now, now))
         conn.commit()
     return get_camp_by_id(camp_id, db_path) # type: ignore
 
@@ -563,6 +758,8 @@ def delete_camp(camp_id: str, db_path: str = DEFAULT_DB_PATH) -> bool:
     init_db(db_path)
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
+        cursor.execute("DELETE FROM adult_records WHERE camp_id = ?;", (camp_id,))
+        cursor.execute("DELETE FROM paediatric_records WHERE camp_id = ?;", (camp_id,))
         cursor.execute("DELETE FROM records WHERE camp_id = ?;", (camp_id,))
         cursor.execute("DELETE FROM camps WHERE id = ?;", (camp_id,))
         conn.commit()
@@ -663,31 +860,377 @@ def get_record_by_id(record_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional
             return None
         return _format_record_row(row)
 
-def insert_record(record_data: Dict[str, Any], db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
-    """Insert a new record, ensuring stable unique ID and default status."""
+def get_adult_record_by_id(record_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[Dict[str, Any]]:
+    """Fetch a single adult record from the segregated adult_records table."""
+    init_db(db_path)
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT a.*, c.name AS camp_name 
+            FROM adult_records a 
+            JOIN camps c ON a.camp_id = c.id
+            WHERE a.id = ?;
+        """, (record_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return _format_record_row(row)
+
+def get_paediatric_record_by_id(record_id: str, db_path: str = DEFAULT_DB_PATH) -> Optional[Dict[str, Any]]:
+    """Fetch a single paediatric record from the segregated paediatric_records table."""
+    init_db(db_path)
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT p.*, c.name AS camp_name 
+            FROM paediatric_records p 
+            JOIN camps c ON p.camp_id = c.id
+            WHERE p.id = ?;
+        """, (record_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return _format_record_row(row)
+
+def list_adult_records(
+    camp_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    db_path: str = DEFAULT_DB_PATH
+) -> List[Dict[str, Any]]:
+    """List records directly from the segregated adult_records table."""
+    init_db(db_path)
+    base_sql = "SELECT a.*, c.name AS camp_name FROM adult_records a JOIN camps c ON a.camp_id = c.id"
+    conds, params = [], []
+    if camp_id:
+        conds.append("a.camp_id = ?")
+        params.append(camp_id)
+    if status:
+        conds.append("a.status = ?")
+        params.append(status)
+    where = (" WHERE " + " AND ".join(conds)) if conds else ""
+    sql = f"{base_sql} {where} ORDER BY a.created_at DESC LIMIT ?;"
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql, params + [limit])
+        return [_format_record_row(r) for r in cursor.fetchall()]
+
+def list_paediatric_records(
+    camp_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    db_path: str = DEFAULT_DB_PATH
+) -> List[Dict[str, Any]]:
+    """List records directly from the segregated paediatric_records table."""
+    init_db(db_path)
+    base_sql = "SELECT p.*, c.name AS camp_name FROM paediatric_records p JOIN camps c ON p.camp_id = c.id"
+    conds, params = [], []
+    if camp_id:
+        conds.append("p.camp_id = ?")
+        params.append(camp_id)
+    if status:
+        conds.append("p.status = ?")
+        params.append(status)
+    where = (" WHERE " + " AND ".join(conds)) if conds else ""
+    sql = f"{base_sql} {where} ORDER BY p.created_at DESC LIMIT ?;"
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql, params + [limit])
+        return [_format_record_row(r) for r in cursor.fetchall()]
+
+def _clean_field_val(val: Any) -> Optional[str]:
+    """Helper to extract a clean string from scalar or extraction dictionary."""
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        v = val.get("value")
+        return None if v is None else str(v).strip()
+    s = str(val).strip()
+    return s if s else None
+
+def _clean_num_val(val: Any) -> Optional[float]:
+    """Helper to extract numeric value from scalar or extraction dictionary."""
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        val = val.get("value")
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
+
+def insert_adult_record(record_data: Dict[str, Any], db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
+    """Insert into segregated adult_records table."""
     init_db(db_path)
     rec_id = record_data.get("id") or f"rec_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
     now = datetime.now(timezone.utc).isoformat()
-    
+    sr = record_data.get("structured_record") or {}
+    p_info = sr.get("personal_information") or {}
+    vitals = sr.get("vitals") or {}
+    dental = sr.get("dental_assessment") or {}
+    vision = sr.get("vision_assessment") or {}
+    referral = sr.get("referral") or {}
+    history = sr.get("medical_history") or {}
+    f_hist = sr.get("family_history") or {}
+
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO adult_records (
+                id, camp_id, person_name, age, gender, height, weight,
+                blood_pressure, pulse, rbs, waist_circumference, ecg_notes, echo_notes,
+                examination_details, referral_details, marital_status, parent_spouse_name,
+                no_of_children, address, mobile_number, blood_group, dob, admission_id,
+                moc_doc_id, school_college_name, staff_student_type, shift, year_of_study,
+                course_dept, section, medical_history, family_history, vision_category,
+                distant_vision_right, distant_vision_left, dental_status, dental_abnormality,
+                dental_advice, consent_given, consent_signature, status, missing_fields,
+                uncertain_fields, extraction_notes, structured_record, page1_preview,
+                page2_preview, reviewer_notes, reviewed_by, reviewed_at, approved_by,
+                approved_at, scanned_by, community_id, edit_history, version,
+                confidence_scores, locked_by, locked_at, original_ai_extraction,
+                quality_warning_bypassed, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (
+            rec_id,
+            record_data["camp_id"],
+            _clean_field_val(record_data.get("person_name") or p_info.get("full_name")) or "Unknown Patient",
+            _clean_field_val(record_data.get("age") or p_info.get("age")),
+            _clean_field_val(record_data.get("gender") or p_info.get("gender")),
+            _clean_field_val(record_data.get("height") or vitals.get("height_cm")),
+            _clean_field_val(record_data.get("weight") or vitals.get("weight_kg")),
+            _clean_field_val(record_data.get("blood_pressure") or vitals.get("bp")),
+            _clean_field_val(record_data.get("pulse") or vitals.get("pulse")),
+            _clean_field_val(record_data.get("rbs") or vitals.get("rbs")),
+            _clean_field_val(record_data.get("waist_circumference") or vitals.get("waist_cm")),
+            _clean_field_val(record_data.get("ecg_notes") or vitals.get("ecg")),
+            _clean_field_val(record_data.get("echo_notes") or vitals.get("echo")),
+            _clean_field_val(record_data.get("examination_details")),
+            _clean_field_val(record_data.get("referral_details") or referral.get("specialist")),
+            _clean_field_val(record_data.get("marital_status") or p_info.get("marital_status")),
+            _clean_field_val(record_data.get("parent_spouse_name") or p_info.get("parent_or_spouse")),
+            _clean_field_val(record_data.get("no_of_children") or p_info.get("children")),
+            _clean_field_val(record_data.get("address") or p_info.get("address")),
+            _clean_field_val(record_data.get("mobile_number") or p_info.get("mobile")),
+            _clean_field_val(record_data.get("blood_group") or p_info.get("blood_group")),
+            _clean_field_val(record_data.get("dob") or p_info.get("dob")),
+            _clean_field_val(record_data.get("admission_id") or p_info.get("admission_id")),
+            _clean_field_val(record_data.get("moc_doc_id") or p_info.get("moc_doc_id")),
+            _clean_field_val(record_data.get("school_college_name") or p_info.get("institution")),
+            _clean_field_val(record_data.get("staff_student_type") or p_info.get("staff_or_student")),
+            _clean_field_val(record_data.get("shift") or p_info.get("shift")),
+            _clean_field_val(record_data.get("year_of_study") or p_info.get("year")),
+            _clean_field_val(record_data.get("course_dept") or p_info.get("course")),
+            _clean_field_val(record_data.get("section") or p_info.get("section")),
+            json.dumps(record_data.get("medical_history") or history),
+            json.dumps(record_data.get("family_history") or f_hist),
+            _clean_field_val(record_data.get("vision_category") or vision.get("vision_type")),
+            _clean_field_val(record_data.get("distant_vision_right") or vision.get("right_eye")),
+            _clean_field_val(record_data.get("distant_vision_left") or vision.get("left_eye")),
+            _clean_field_val(record_data.get("dental_status") or dental.get("dental_status")),
+            _clean_field_val(record_data.get("dental_abnormality") or dental.get("dental_abnormality")),
+            _clean_field_val(record_data.get("dental_advice") or dental.get("dental_advice")),
+            1 if record_data.get("consent_given", True) else 0,
+            _clean_field_val(record_data.get("consent_signature")),
+            _clean_field_val(record_data.get("status", "needs_review")),
+            json.dumps(record_data.get("missing_fields", [])),
+            json.dumps(record_data.get("uncertain_fields", [])),
+            _clean_field_val(record_data.get("extraction_notes")),
+            json.dumps(record_data.get("structured_record", {})) if record_data.get("structured_record") is not None else None,
+            _clean_field_val(record_data.get("page1_preview")),
+            _clean_field_val(record_data.get("page2_preview")),
+            _clean_field_val(record_data.get("reviewer_notes")),
+            _clean_field_val(record_data.get("reviewed_by")),
+            _clean_field_val(record_data.get("reviewed_at")),
+            _clean_field_val(record_data.get("approved_by")),
+            _clean_field_val(record_data.get("approved_at")),
+            _clean_field_val(record_data.get("scanned_by") or "Dr. Priya"),
+            _clean_field_val(record_data.get("community_id")),
+            json.dumps(record_data.get("edit_history", [])),
+            int(record_data.get("version", 1) or 1),
+            json.dumps(record_data.get("confidence_scores", {})),
+            _clean_field_val(record_data.get("locked_by")),
+            _clean_field_val(record_data.get("locked_at")),
+            json.dumps(record_data.get("original_ai_extraction", {})),
+            json.dumps(record_data.get("quality_warning_bypassed", [])),
+            now,
+            now
+        ))
+        conn.commit()
+    return get_adult_record_by_id(rec_id, db_path) # type: ignore
+
+def insert_paediatric_record(record_data: Dict[str, Any], db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
+    """Insert into segregated paediatric_records table."""
+    init_db(db_path)
+    rec_id = record_data.get("id") or f"rec_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
+    now = datetime.now(timezone.utc).isoformat()
+    sr = record_data.get("structured_record") or {}
+    p_info = sr.get("personal_information") or {}
+    vitals = sr.get("vitals") or {}
+    dental = sr.get("dental_assessment") or {}
+    vision = sr.get("vision_assessment") or {}
+    referral = sr.get("referral") or {}
+    history = sr.get("medical_history") or {}
+    paed = sr.get("paediatric_growth") or {}
+
+    with get_db_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO paediatric_records (
+                id, camp_id, person_name, age, gender, height, weight,
+                bmi, bmi_centile, bmi_classification, blood_pressure, bp_percentile, bp_classification,
+                pulse, spinal_caliper_atr, head_circumference, muac, screening_type, school_name,
+                class_and_section, admission_id, moc_doc_id, dob, blood_group, parent_guardian_name,
+                emergency_contact_phone, address, birth_history, milestones, immunization_status,
+                dietary_habits, known_allergies, vital_signs_status, gait_status, ears_hearing_status,
+                otoscopy_findings, oral_cavity_throat, lymph_nodes, systemic_findings,
+                vision_distant_right, vision_distant_left, color_vision, squint_strabismus,
+                dental_caries, malocclusion, oral_hygiene, examination_details, referral_specialist,
+                referral_reason, referral_details, paediatric_alerts, consent_given, consent_signature,
+                status, missing_fields, uncertain_fields, extraction_notes, structured_record,
+                page1_preview, page2_preview, reviewer_notes, reviewed_by, reviewed_at,
+                approved_by, approved_at, scanned_by, community_id, edit_history, version,
+                confidence_scores, locked_by, locked_at, original_ai_extraction,
+                quality_warning_bypassed, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (
+            rec_id,
+            record_data["camp_id"],
+            _clean_field_val(record_data.get("person_name") or p_info.get("full_name")) or "Unknown Child",
+            _clean_field_val(record_data.get("age") or p_info.get("age")),
+            _clean_field_val(record_data.get("gender") or p_info.get("gender")),
+            _clean_field_val(record_data.get("height") or vitals.get("height_cm")),
+            _clean_field_val(record_data.get("weight") or vitals.get("weight_kg")),
+            _clean_field_val(record_data.get("bmi") or paed.get("bmi")),
+            _clean_num_val(record_data.get("bmi_centile") or paed.get("bmi_centile")),
+            _clean_field_val(record_data.get("bmi_classification") or paed.get("bmi_classification")),
+            _clean_field_val(record_data.get("blood_pressure") or vitals.get("bp")),
+            _clean_num_val(record_data.get("bp_percentile") or paed.get("bp_percentile")),
+            _clean_field_val(record_data.get("bp_classification") or paed.get("bp_classification")),
+            _clean_field_val(record_data.get("pulse") or vitals.get("pulse")),
+            _clean_num_val(record_data.get("spinal_caliper_atr") or paed.get("spinal_caliper_atr")),
+            _clean_field_val(record_data.get("head_circumference") or vitals.get("head_circumference")),
+            _clean_field_val(record_data.get("muac") or vitals.get("muac")),
+            _clean_field_val(record_data.get("screening_type") or sr.get("screening_type") or "School Health Screening"),
+            _clean_field_val(record_data.get("school_name") or p_info.get("institution") or p_info.get("school_name")),
+            _clean_field_val(record_data.get("class_and_section") or f"{_clean_field_val(p_info.get('course')) or ''} {_clean_field_val(p_info.get('section')) or ''}".strip()),
+            _clean_field_val(record_data.get("admission_id") or p_info.get("admission_id")),
+            _clean_field_val(record_data.get("moc_doc_id") or p_info.get("moc_doc_id")),
+            _clean_field_val(record_data.get("dob") or p_info.get("dob")),
+            _clean_field_val(record_data.get("blood_group") or p_info.get("blood_group")),
+            _clean_field_val(record_data.get("parent_guardian_name") or p_info.get("parent_or_spouse")),
+            _clean_field_val(record_data.get("emergency_contact_phone") or p_info.get("mobile")),
+            _clean_field_val(record_data.get("address") or p_info.get("address")),
+            _clean_field_val(record_data.get("birth_history") or sr.get("birth_history")),
+            _clean_field_val(record_data.get("milestones") or sr.get("milestones")),
+            _clean_field_val(record_data.get("immunization_status") or sr.get("immunization_status")),
+            _clean_field_val(record_data.get("dietary_habits") or sr.get("dietary_habits")),
+            _clean_field_val(record_data.get("known_allergies") or history.get("allergy")),
+            _clean_field_val(record_data.get("vital_signs_status")),
+            _clean_field_val(record_data.get("gait_status") or sr.get("gait_status")),
+            _clean_field_val(record_data.get("ears_hearing_status") or sr.get("systemic_examination", {}).get("ear")),
+            _clean_field_val(record_data.get("otoscopy_findings") or sr.get("otoscopy_findings")),
+            _clean_field_val(record_data.get("oral_cavity_throat") or sr.get("systemic_examination", {}).get("throat")),
+            _clean_field_val(record_data.get("lymph_nodes") or sr.get("general_signs", {}).get("lymphadenopathy")),
+            json.dumps(record_data.get("systemic_findings") or sr.get("systemic_examination") or {}),
+            _clean_field_val(record_data.get("vision_distant_right") or vision.get("right_eye")),
+            _clean_field_val(record_data.get("vision_distant_left") or vision.get("left_eye")),
+            _clean_field_val(record_data.get("color_vision") or sr.get("color_vision")),
+            _clean_field_val(record_data.get("squint_strabismus") or sr.get("squint_strabismus")),
+            _clean_field_val(record_data.get("dental_caries") or dental.get("dental_abnormality")),
+            _clean_field_val(record_data.get("malocclusion") or sr.get("malocclusion")),
+            _clean_field_val(record_data.get("oral_hygiene") or dental.get("dental_status")),
+            _clean_field_val(record_data.get("examination_details")),
+            _clean_field_val(record_data.get("referral_specialist") or referral.get("specialist")),
+            _clean_field_val(record_data.get("referral_reason") or referral.get("reason")),
+            _clean_field_val(record_data.get("referral_details")),
+            json.dumps(record_data.get("paediatric_alerts") or paed.get("paediatric_alerts") or []),
+            1 if record_data.get("consent_given", True) else 0,
+            _clean_field_val(record_data.get("consent_signature")),
+            _clean_field_val(record_data.get("status", "needs_review")),
+            json.dumps(record_data.get("missing_fields", [])),
+            json.dumps(record_data.get("uncertain_fields", [])),
+            _clean_field_val(record_data.get("extraction_notes")),
+            json.dumps(record_data.get("structured_record", {})) if record_data.get("structured_record") is not None else None,
+            _clean_field_val(record_data.get("page1_preview")),
+            _clean_field_val(record_data.get("page2_preview")),
+            _clean_field_val(record_data.get("reviewer_notes")),
+            _clean_field_val(record_data.get("reviewed_by")),
+            _clean_field_val(record_data.get("reviewed_at")),
+            _clean_field_val(record_data.get("approved_by")),
+            _clean_field_val(record_data.get("approved_at")),
+            _clean_field_val(record_data.get("scanned_by") or "Dr. Priya"),
+            _clean_field_val(record_data.get("community_id")),
+            json.dumps(record_data.get("edit_history", [])),
+            int(record_data.get("version", 1) or 1),
+            json.dumps(record_data.get("confidence_scores", {})),
+            _clean_field_val(record_data.get("locked_by")),
+            _clean_field_val(record_data.get("locked_at")),
+            json.dumps(record_data.get("original_ai_extraction", {})),
+            json.dumps(record_data.get("quality_warning_bypassed", [])),
+            now,
+            now
+        ))
+        conn.commit()
+    return get_paediatric_record_by_id(rec_id, db_path) # type: ignore
+
+def insert_record(record_data: Dict[str, Any], db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
+    """Insert a new record, routing to segregated adult_records or paediatric_records, and syncing records."""
+    init_db(db_path)
+    camp_id = record_data.get("camp_id")
+    tg = record_data.get("target_group")
+    if not tg:
+        if record_data.get("is_paediatric"):
+            tg = "paediatric"
+        elif camp_id:
+            c = get_camp_by_id(camp_id, db_path)
+            tg = (c.get("target_group") if c else None) or "adult"
+        else:
+            tg = "adult"
+    tg = (tg or "adult").strip().lower()
+    is_paed = 1 if tg == "paediatric" else 0
+    record_data["target_group"] = tg
+    record_data["is_paediatric"] = is_paed
+
+    if tg == "paediatric":
+        res = insert_paediatric_record(record_data, db_path)
+    else:
+        res = insert_adult_record(record_data, db_path)
+
+    rec_id = res["id"]
+    now = datetime.now(timezone.utc).isoformat()
     missing_json = json.dumps(record_data.get("missing_fields", []))
     uncertain_json = json.dumps(record_data.get("uncertain_fields", []))
     structured_json = json.dumps(record_data.get("structured_record", {})) if record_data.get("structured_record") is not None else None
     status = record_data.get("status", "needs_review")
     scanned_by = record_data.get("scanned_by") or record_data.get("doctor_name") or "Dr. Priya"
     
+    orig_ai = record_data.get("original_ai_extraction")
+    if orig_ai is None and record_data.get("structured_record"):
+        orig_ai = record_data.get("structured_record")
+    orig_ai_json = json.dumps(orig_ai) if orig_ai is not None else None
+
+    bypassed_quality = record_data.get("quality_warning_bypassed", [])
+    bypassed_quality_json = json.dumps(bypassed_quality) if isinstance(bypassed_quality, list) else json.dumps([str(bypassed_quality)])
+    paed_alerts_json = json.dumps(record_data.get("paediatric_alerts", []))
+    
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO records (
+            INSERT OR REPLACE INTO records (
                 id, camp_id, person_name, age, gender, height, weight,
                 blood_pressure, examination_details, referral_details,
                 missing_fields, uncertain_fields, extraction_notes, structured_record,
                 status, page1_preview, page2_preview, reviewer_notes,
-                reviewed_by, reviewed_at, scanned_by, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                reviewed_by, reviewed_at, scanned_by, original_ai_extraction,
+                quality_warning_bypassed, target_group, is_paediatric, paediatric_alerts,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """, (
             rec_id,
-            record_data["camp_id"],
+            camp_id,
             record_data.get("person_name") or "Unknown Patient",
             record_data.get("age"),
             record_data.get("gender"),
@@ -707,6 +1250,11 @@ def insert_record(record_data: Dict[str, Any], db_path: str = DEFAULT_DB_PATH) -
             record_data.get("reviewed_by"),
             record_data.get("reviewed_at"),
             scanned_by,
+            orig_ai_json,
+            bypassed_quality_json,
+            tg,
+            is_paed,
+            paed_alerts_json,
             now,
             now
         ))
@@ -839,7 +1387,7 @@ def update_reviewed_record(record_id: str, update_data: Dict[str, Any], reviewer
                 reviewed_at = ?,
                 edit_history = ?,
                 version = COALESCE(version, 1) + 1,
-                status = 'reviewed',
+                status = ?,
                 updated_at = ?
             WHERE id = ?;
         """, (
@@ -859,9 +1407,54 @@ def update_reviewed_record(record_id: str, update_data: Dict[str, Any], reviewer
             reviewer,
             now,
             history_json,
+            update_data.get("status") or "reviewed",
             now,
             record_id
         ))
+        for tbl in ("adult_records", "paediatric_records"):
+            cursor.execute(f"""
+                UPDATE {tbl} SET
+                    person_name = ?,
+                    age = ?,
+                    gender = ?,
+                    height = ?,
+                    weight = ?,
+                    blood_pressure = ?,
+                    examination_details = ?,
+                    referral_details = ?,
+                    missing_fields = ?,
+                    uncertain_fields = ?,
+                    extraction_notes = ?,
+                    structured_record = COALESCE(?, structured_record),
+                    reviewer_notes = ?,
+                    reviewed_by = ?,
+                    reviewed_at = ?,
+                    edit_history = ?,
+                    version = COALESCE(version, 1) + 1,
+                    status = ?,
+                    updated_at = ?
+                WHERE id = ?;
+            """, (
+                update_data.get("person_name", "").strip() or "Unnamed Patient",
+                update_data.get("age"),
+                update_data.get("gender"),
+                update_data.get("height"),
+                update_data.get("weight"),
+                update_data.get("blood_pressure"),
+                update_data.get("examination_details"),
+                update_data.get("referral_details"),
+                missing_json,
+                uncertain_json,
+                update_data.get("extraction_notes"),
+                structured_json,
+                update_data.get("reviewer_notes"),
+                reviewer,
+                now,
+                history_json,
+                update_data.get("status") or "reviewed",
+                now,
+                record_id
+            ))
         conn.commit()
     return get_record_by_id(record_id, db_path)
 
@@ -919,6 +1512,8 @@ def erase_patient_record(record_id: str, db_path: str = DEFAULT_DB_PATH) -> bool
 
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
+        cursor.execute("DELETE FROM adult_records WHERE id = ?;", (record_id,))
+        cursor.execute("DELETE FROM paediatric_records WHERE id = ?;", (record_id,))
         cursor.execute("DELETE FROM records WHERE id = ?;", (record_id,))
         conn.commit()
         return cursor.rowcount > 0
@@ -1603,6 +2198,20 @@ def _format_record_row(row: sqlite3.Row) -> Dict[str, Any]:
     except Exception:
         pass
 
+    original_ai_extraction = None
+    try:
+        if "original_ai_extraction" in row.keys() and row["original_ai_extraction"]:
+            original_ai_extraction = json.loads(row["original_ai_extraction"])
+    except Exception:
+        pass
+
+    quality_warning_bypassed = []
+    try:
+        if "quality_warning_bypassed" in row.keys() and row["quality_warning_bypassed"]:
+            quality_warning_bypassed = json.loads(row["quality_warning_bypassed"])
+    except Exception:
+        pass
+
     return {
         "id": row["id"],
         "camp_id": row["camp_id"],
@@ -1635,6 +2244,8 @@ def _format_record_row(row: sqlite3.Row) -> Dict[str, Any]:
         "reviewed_by": row["reviewed_by"],
         "reviewed_at": row["reviewed_at"],
         "scanned_by": row["scanned_by"] if "scanned_by" in row.keys() else "Dr. Priya",
+        "original_ai_extraction": original_ai_extraction,
+        "quality_warning_bypassed": quality_warning_bypassed,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"]
     }
@@ -2046,6 +2657,20 @@ def approve_record(
     if not rec:
         return False, None, "Record not found"
 
+    # Consent Gating Lock: Enforce hard block preventing doctor approval if consent is withheld or marked 'No'
+    consent_given = rec.get("consent_given")
+    sr = rec.get("structured_record") or {}
+    p_info = sr.get("personal_information") or {}
+    cs = p_info.get("consent_screening")
+    cs_val = None
+    if isinstance(cs, dict):
+        cs_val = cs.get("value")
+    elif cs is not None:
+        cs_val = str(cs)
+
+    if consent_given is False or (cs_val and str(cs_val).strip().lower() in ("no", "false", "denied", "withheld", "0")):
+        return False, rec, "consent_withheld"
+
     uncertain = rec.get("uncertain_fields") or []
     if isinstance(uncertain, str):
         try:
@@ -2069,6 +2694,8 @@ def approve_record(
                     updated_at = ?
                 WHERE id = ?;
             """, (approved_by, now_iso, now_iso, record_id))
+            cursor.execute("UPDATE adult_records SET status = 'approved', approved_by = ?, approved_at = ?, locked_by = NULL, locked_at = NULL, updated_at = ? WHERE id = ?;", (approved_by, now_iso, now_iso, record_id))
+            cursor.execute("UPDATE paediatric_records SET status = 'approved', approved_by = ?, approved_at = ?, locked_by = NULL, locked_at = NULL, updated_at = ? WHERE id = ?;", (approved_by, now_iso, now_iso, record_id))
             conn.commit()
         except sqlite3.IntegrityError:
             cursor.execute("""
@@ -2081,6 +2708,8 @@ def approve_record(
                     updated_at = ?
                 WHERE id = ?;
             """, (approved_by, now_iso, now_iso, record_id))
+            cursor.execute("UPDATE adult_records SET status = 'reviewed', approved_by = ?, approved_at = ?, locked_by = NULL, locked_at = NULL, updated_at = ? WHERE id = ?;", (approved_by, now_iso, now_iso, record_id))
+            cursor.execute("UPDATE paediatric_records SET status = 'reviewed', approved_by = ?, approved_at = ?, locked_by = NULL, locked_at = NULL, updated_at = ? WHERE id = ?;", (approved_by, now_iso, now_iso, record_id))
             conn.commit()
 
     approve_paper(org_id=org_id, record_id=record_id, db_path=db_path)
@@ -2516,4 +3145,234 @@ def get_invoice_by_id_or_number(identifier: str, db_path: str = DEFAULT_DB_PATH)
         """, (identifier, identifier))
         row = cursor.fetchone()
         return dict(row) if row else None
+
+
+def generate_patient_referral_pdf(record_data: Dict[str, Any], output_path: str) -> str:
+    """Generate a high-fidelity, branded 1-page Clinical Intake Summary & Referral Slip PDF."""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer, HRFlowable
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        REPORTLAB_AVAILABLE = True
+    except ImportError:
+        REPORTLAB_AVAILABLE = False
+
+    if not REPORTLAB_AVAILABLE:
+        pdf_content = (
+            b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+            b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\n"
+            b"xref\n0 4\n0000000000 65535 f \n0000000010 00000 n \n0000000053 00000 n \n0000000102 00000 n \n"
+            b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF\n"
+        )
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(pdf_content)
+        return output_path
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "CardTitle",
+        parent=styles["Normal"],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#0F172A"),
+        fontName="Helvetica-Bold"
+    )
+    sub_style = ParagraphStyle(
+        "CardSub",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor("#64748B"),
+        fontName="Helvetica"
+    )
+    section_style = ParagraphStyle(
+        "CardSec",
+        parent=styles["Normal"],
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor("#0F172A"),
+        fontName="Helvetica-Bold"
+    )
+    label_style = ParagraphStyle(
+        "CardLbl",
+        parent=styles["Normal"],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#475569"),
+        fontName="Helvetica-Bold"
+    )
+    val_style = ParagraphStyle(
+        "CardVal",
+        parent=styles["Normal"],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#0F172A"),
+        fontName="Helvetica"
+    )
+    alert_style = ParagraphStyle(
+        "CardAlert",
+        parent=styles["Normal"],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#DC2626"),
+        fontName="Helvetica-Bold"
+    )
+
+    elements = []
+
+    # Header Banner
+    header_data = [
+        [
+            Paragraph("<b>INK 2 INSIGHT</b><br/><font size='8' color='#64748B'>CLINICAL OUTREACH & HEALTH CAMP PLATFORM</font>", title_style),
+            Paragraph(f"<b>PATIENT REFERRAL SLIP</b><br/><font size='8' color='#64748B'>ID: {record_data.get('id', 'N/A')}</font><br/><font size='8' color='#64748B'>Date: {datetime.now(timezone.utc).strftime('%d %b %Y')}</font>", ParagraphStyle("RightH", parent=title_style, alignment=2, fontSize=11, leading=14))
+        ]
+    ]
+    header_table = Table(header_data, colWidths=[320, 220])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+
+    # Patient Demographic Box
+    p_name = record_data.get("person_name") or "Patient"
+    age = record_data.get("age") or "N/A"
+    gender = record_data.get("gender") or "N/A"
+    camp_name = record_data.get("camp_name") or "Outreach Medical Camp"
+
+    sr = record_data.get("structured_record") or {}
+    p_info = sr.get("personal_information") or {}
+    h_asmt = sr.get("health_assessment") or {}
+    ref = sr.get("referral") or {}
+
+    demo_data = [
+        [Paragraph("Patient Name:", label_style), Paragraph(str(p_name), val_style), Paragraph("Camp / School:", label_style), Paragraph(str(camp_name), val_style)],
+        [Paragraph("Age / Gender:", label_style), Paragraph(f"{age} Yrs / {gender}", val_style), Paragraph("Admission/Doc ID:", label_style), Paragraph(str(p_info.get("admission_id") or p_info.get("doc_id") or "N/A"), val_style)],
+    ]
+    demo_table = Table(demo_data, colWidths=[90, 180, 100, 170])
+    demo_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#E2E8F0")),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(demo_table)
+    elements.append(Spacer(1, 12))
+
+    # Vitals & Clinical Alerts Box
+    ht = record_data.get("height") or h_asmt.get("height_cm", {}).get("value") or ""
+    wt = record_data.get("weight") or h_asmt.get("weight_kg", {}).get("value") or ""
+    bp = record_data.get("blood_pressure") or h_asmt.get("blood_pressure_mmhg", {}).get("value") or ""
+    pulse = h_asmt.get("pulse_bpm", {}).get("value") or "N/A"
+
+    # Calculate BMI & Stage
+    bmi_str = "N/A"
+    bmi_alert = ""
+    try:
+        w_f = float(str(wt).replace("kg", "").strip())
+        h_f = float(str(ht).replace("cm", "").strip())
+        if w_f > 0 and h_f > 0:
+            bmi_val = round(w_f / ((h_f / 100.0) ** 2), 1)
+            if bmi_val < 18.5:
+                bmi_str = f"{bmi_val} kg/m² (Underweight)"
+            elif bmi_val <= 22.9:
+                bmi_str = f"{bmi_val} kg/m² (Normal)"
+            elif bmi_val <= 24.9:
+                bmi_str = f"{bmi_val} kg/m² (Pre-Obese)"
+            elif bmi_val <= 29.9:
+                bmi_str = f"{bmi_val} kg/m² (Overweight / Class I)"
+                bmi_alert = "⚠️ High BMI Detected"
+            else:
+                bmi_str = f"{bmi_val} kg/m² (Obese Class II/III)"
+                bmi_alert = "🚨 High BMI Alert (Obese)"
+    except Exception:
+        pass
+
+    # BP Staging
+    bp_alert = ""
+    try:
+        if "/" in str(bp):
+            sys_val = int(str(bp).split("/")[0].strip())
+            dia_val = int(str(bp).split("/")[1].strip())
+            if sys_val >= 180 or dia_val >= 120:
+                bp_alert = "🚨 HYPERTENSIVE CRISIS"
+            elif sys_val >= 140 or dia_val >= 90:
+                bp_alert = "⚠️ Stage 2 Hypertension"
+            elif sys_val >= 130 or dia_val >= 80:
+                bp_alert = "Advisory: Stage 1 HTN"
+    except Exception:
+        pass
+
+    elements.append(Paragraph("VITAL SIGNS & CLINICAL MEASUREMENTS", section_style))
+    elements.append(Spacer(1, 4))
+
+    vitals_data = [
+        [Paragraph("Height:", label_style), Paragraph(f"{ht} cm" if ht else "N/A", val_style), Paragraph("Weight:", label_style), Paragraph(f"{wt} kg" if wt else "N/A", val_style)],
+        [Paragraph("Calculated BMI:", label_style), Paragraph(bmi_str, alert_style if bmi_alert else val_style), Paragraph("Blood Pressure:", label_style), Paragraph(f"{bp} mmHg ({bp_alert})" if bp_alert else f"{bp} mmHg", alert_style if bp_alert else val_style)],
+        [Paragraph("Pulse Rate:", label_style), Paragraph(f"{pulse} bpm", val_style), Paragraph("Clinical Flags:", label_style), Paragraph(f"{bmi_alert} {bp_alert}".strip() or "Vitals Within Limits", alert_style if (bmi_alert or bp_alert) else val_style)],
+    ]
+    vitals_table = Table(vitals_data, colWidths=[90, 180, 100, 170])
+    vitals_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#CBD5E1")),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#F1F5F9")),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(vitals_table)
+    elements.append(Spacer(1, 12))
+
+    # Examination & Referral Summary
+    elements.append(Paragraph("CLINICAL EVALUATION & REFERRAL", section_style))
+    elements.append(Spacer(1, 4))
+
+    specialist = record_data.get("referral_details") or ref.get("specialist_referred_to", {}).get("value") or "General Health / Lifestyle Consultation"
+    notes = record_data.get("reviewer_notes") or record_data.get("examination_details") or "Routine school health checkup completed."
+
+    eval_data = [
+        [Paragraph("Referred To:", label_style), Paragraph(f"<b>{specialist}</b>", ParagraphStyle("Sp", parent=val_style, textColor=colors.HexColor("#0284C7"), fontName="Helvetica-Bold"))],
+        [Paragraph("Doctor's Remarks:", label_style), Paragraph(str(notes), val_style)],
+    ]
+    eval_table = Table(eval_data, colWidths=[110, 430])
+    eval_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#E2E8F0")),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(eval_table)
+    elements.append(Spacer(1, 25))
+
+    # Doctor Signature Footer
+    doc_name = record_data.get("reviewed_by") or "Dr. Priya (Attending Physician)"
+    sig_data = [
+        [
+            Paragraph("<b>Patient / Parent Copy</b><br/><font size='8' color='#64748B'>Please present this referral slip at your clinic visit.</font>", sub_style),
+            Paragraph(f"<b>Reviewed & Signed by:</b><br/>{doc_name}<br/><font size='8' color='#64748B'>Reg No: MCI-2024-8849</font>", ParagraphStyle("Sig", parent=val_style, alignment=2))
+        ]
+    ]
+    sig_table = Table(sig_data, colWidths=[300, 240])
+    elements.append(sig_table)
+    elements.append(Spacer(1, 15))
+
+    # Statutory Footer
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#CBD5E1"), spaceAfter=6))
+    elements.append(Paragraph("<font size='7' color='#94A3B8'>CONFIDENTIAL MEDICAL INFORMATION · Issued under Digital Personal Data Protection Act 2023 · Ink 2 Insight Clinical Platform</font>", ParagraphStyle("Foot", parent=sub_style, alignment=1)))
+
+    doc.build(elements)
+    return output_path
+
 

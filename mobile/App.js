@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-const DEFAULT_SERVER_URL = 'http://192.168.1.7:5001';
+const DEFAULT_SERVER_URL = 'http://192.168.1.8:5001';
 
 export default function App() {
   const [currentUrl, setCurrentUrl] = useState(DEFAULT_SERVER_URL);

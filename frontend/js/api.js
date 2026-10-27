@@ -1,7 +1,11 @@
 /**
  * API Service for Doc Scanner - Minimal Clinic Demo MVP.
  * Handles all HTTP communications with the Flask backend.
+ * Offline-capable: extractPages() enqueues encrypted blobs when offline.
  */
+
+import { offlineQueue, registerOfflineSupport } from './offline-queue.js';
+export { offlineQueue, registerOfflineSupport };
 
 const API_BASE = (window.location.origin && window.location.origin.startsWith('http'))
   ? '' 
@@ -9,8 +13,23 @@ const API_BASE = (window.location.origin && window.location.origin.startsWith('h
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
+  const opts = { ...options };
+  const headers = opts.headers ? { ...opts.headers } : {};
+  const customKey = localStorage.getItem('i2i_ai_api_key');
+  if (customKey && !headers['X-AI-API-Key']) {
+    headers['X-AI-API-Key'] = customKey.trim();
+  }
+  const customProvider = localStorage.getItem('i2i_ai_provider');
+  if (customProvider && !headers['X-AI-Provider']) {
+    headers['X-AI-Provider'] = customProvider.trim();
+  }
+  const customModel = localStorage.getItem('i2i_ai_model');
+  if (customModel && !headers['X-AI-Model']) {
+    headers['X-AI-Model'] = customModel.trim();
+  }
+  opts.headers = headers;
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, opts);
     const contentType = res.headers.get('content-type') || '';
     let data;
     if (contentType.includes('application/json')) {
@@ -100,7 +119,29 @@ export const api = {
     return request(`/api/records/${encodeURIComponent(recordId)}`);
   },
 
-  async extractPages(page1Blob, page2Blob) {
+  async extractPages(page1Blob, page2Blob, campId = null) {
+    // ── Offline path: encrypt + enqueue ────────────────────────────────────
+    if (!navigator.onLine) {
+      const apiHeaders = {};
+      const customKey = localStorage.getItem('i2i_ai_api_key');
+      if (customKey) apiHeaders['X-AI-API-Key'] = customKey.trim();
+      const customProvider = localStorage.getItem('i2i_ai_provider');
+      if (customProvider) apiHeaders['X-AI-Provider'] = customProvider.trim();
+      const customModel = localStorage.getItem('i2i_ai_model');
+      if (customModel) apiHeaders['X-AI-Model'] = customModel.trim();
+
+      const id = await offlineQueue.enqueue(page1Blob, page2Blob, { campId, apiHeaders });
+      const queueLength = await offlineQueue.length();
+      // Return a sentinel so callers can distinguish queued from real response
+      return {
+        _offline_queued: true,
+        queue_id: id,
+        queue_length: queueLength,
+        message: `📵 No network — scan saved to encrypted offline queue (#${id}). Will sync automatically when connectivity is restored.`,
+      };
+    }
+
+    // ── Online path: normal upload ──────────────────────────────────────────
     const formData = new FormData();
     formData.append('page1', page1Blob, 'page1.jpg');
     formData.append('page2', page2Blob, 'page2.jpg');
@@ -108,6 +149,21 @@ export const api = {
     return request('/api/extract', {
       method: 'POST',
       body: formData
+    });
+  },
+
+  /**
+   * Direct extract function for internal queue-drain usage.
+   * Always makes the live HTTP call (no offline check).
+   */
+  async extractPagesDirect(page1Blob, page2Blob, extraHeaders = {}) {
+    const formData = new FormData();
+    formData.append('page1', page1Blob, 'page1.jpg');
+    formData.append('page2', page2Blob, 'page2.jpg');
+    return request('/api/extract', {
+      method: 'POST',
+      body: formData,
+      headers: extraHeaders,
     });
   },
 
@@ -239,16 +295,57 @@ export const api = {
     });
   },
 
-  getExportUrl(campId = null, onlyReviewed = false, format = 'xlsx') {
+  getExportUrl(campId = null, onlyReviewed = false, format = 'xlsx', formType = null) {
     const params = new URLSearchParams();
     if (campId) params.append('camp_id', campId);
     if (onlyReviewed) params.append('only_reviewed', 'true');
+    if (formType) params.append('type', formType);
     params.append('format', format);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return `${API_BASE}/api/export${qs}`;
   },
 
-  getCampExportUrl(campId, format = 'xlsx') {
-    return `${API_BASE}/api/camps/${encodeURIComponent(campId)}/export?format=${format}`;
+  getAdultExportUrl(campId = null, onlyReviewed = false) {
+    const params = new URLSearchParams();
+    if (campId) params.append('camp_id', campId);
+    if (onlyReviewed) params.append('only_reviewed', 'true');
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return `${API_BASE}/api/export/adult/excel${qs}`;
+  },
+
+  getPaediatricExportUrl(campId = null, onlyReviewed = false) {
+    const params = new URLSearchParams();
+    if (campId) params.append('camp_id', campId);
+    if (onlyReviewed) params.append('only_reviewed', 'true');
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return `${API_BASE}/api/export/paediatric/excel${qs}`;
+  },
+
+  getCampExportUrl(campId, format = 'xlsx', formType = null) {
+    const params = new URLSearchParams();
+    params.append('format', format);
+    if (formType) params.append('type', formType);
+    return `${API_BASE}/api/camps/${encodeURIComponent(campId)}/export?${params.toString()}`;
+  },
+
+  async getForms() {
+    return request('/api/forms');
+  },
+
+  async getFormStructure(formId) {
+    return request(`/api/forms/${encodeURIComponent(formId)}`);
+  },
+
+  async getFormAttributes(formId) {
+    return request(`/api/forms/${encodeURIComponent(formId)}/attributes`);
+  },
+
+  async getFormSchema(formId) {
+    return request(`/api/forms/${encodeURIComponent(formId)}/schema`);
+  },
+
+  async getAIStatus() {
+    return request('/api/ai/status');
   }
 };
+

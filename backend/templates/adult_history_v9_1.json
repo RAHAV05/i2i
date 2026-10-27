@@ -1,0 +1,388 @@
+{
+  "id": "tpl_adult_history_v9_1",
+  "family": "adult",
+  "page_type": "history",
+  "footer_code": "ASF-D&A-ACS-9.1/03/25",
+  "version": "1.0.0",
+  "title": "Adult Health Intake Form: Patient History & Demographics",
+  "pairing_keys": ["moc_doc_id", "admission_id", "person_name"],
+  "regions": {
+    "header": {"x": 0.05, "y": 0.02, "w": 0.90, "h": 0.12},
+    "personal": {"x": 0.05, "y": 0.14, "w": 0.90, "h": 0.28},
+    "medical_history": {"x": 0.05, "y": 0.42, "w": 0.90, "h": 0.28},
+    "family_history": {"x": 0.05, "y": 0.70, "w": 0.90, "h": 0.18},
+    "consent": {"x": 0.05, "y": 0.88, "w": 0.90, "h": 0.10}
+  },
+  "sections": [
+    {
+      "id": "header",
+      "title": "Header & Institutional Details",
+      "fields": [
+        {
+          "key": "moc_doc_id",
+          "label": "Moc Doc ID",
+          "type": "id",
+          "writer": "student_staff",
+          "required": false,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "page_region": {"x": 0.08, "y": 0.04, "w": 0.35, "h": 0.04},
+          "export_column": "Moc_Doc_ID"
+        },
+        {
+          "key": "admission_id",
+          "label": "Admission ID",
+          "type": "id",
+          "writer": "student_staff",
+          "required": false,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "page_region": {"x": 0.55, "y": 0.04, "w": 0.35, "h": 0.04},
+          "export_column": "Admission_ID"
+        },
+        {
+          "key": "institution_name",
+          "label": "School / College / Institution Name",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": true,
+          "page_region": {"x": 0.08, "y": 0.08, "w": 0.55, "h": 0.04},
+          "export_column": "Institution"
+        },
+        {
+          "key": "affiliation_type",
+          "label": "Affiliation Type",
+          "type": "option_list",
+          "options": ["Staff", "Student"],
+          "writer": "student_staff",
+          "required": true,
+          "page_region": {"x": 0.65, "y": 0.08, "w": 0.25, "h": 0.04},
+          "export_column": "Affiliation"
+        }
+      ]
+    },
+    {
+      "id": "personal",
+      "title": "Personal Demographics",
+      "fields": [
+        {
+          "key": "person_name",
+          "label": "Full Name (In Capitals)",
+          "type": "name",
+          "writer": "student_staff",
+          "required": true,
+          "validation": "^[A-Za-z\\s.]{2,80}$",
+          "page_region": {"x": 0.08, "y": 0.15, "w": 0.60, "h": 0.04},
+          "export_column": "Patient_Name"
+        },
+        {
+          "key": "gender",
+          "label": "Gender",
+          "type": "option_list",
+          "options": ["Male", "Female", "Other"],
+          "writer": "student_staff",
+          "required": true,
+          "page_region": {"x": 0.70, "y": 0.15, "w": 0.20, "h": 0.04},
+          "export_column": "Gender"
+        },
+        {
+          "key": "year_of_study",
+          "label": "Year of Study",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Year_Of_Study"
+        },
+        {
+          "key": "course_department",
+          "label": "Course / Department",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Department"
+        },
+        {
+          "key": "section",
+          "label": "Section",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Section"
+        },
+        {
+          "key": "shift",
+          "label": "Shift",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Shift"
+        },
+        {
+          "key": "blood_group",
+          "label": "Blood Group",
+          "type": "option_list",
+          "options": ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Unknown"],
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Blood_Group"
+        },
+        {
+          "key": "dob",
+          "label": "Date of Birth",
+          "type": "date",
+          "writer": "student_staff",
+          "required": false,
+          "validation": "^\\d{2}[-/.]\\d{2}[-/.]\\d{4}$",
+          "export_column": "DOB"
+        },
+        {
+          "key": "age",
+          "label": "Age",
+          "type": "number",
+          "writer": "student_staff",
+          "required": true,
+          "validation": "^(1[8-9]|[2-9][0-9]|1[0-4][0-9])$",
+          "export_column": "Age"
+        },
+        {
+          "key": "mobile_number",
+          "label": "Mobile Number",
+          "type": "phone",
+          "writer": "student_staff",
+          "required": false,
+          "validation": "^[6-9]\\d{9}$",
+          "export_column": "Mobile"
+        },
+        {
+          "key": "marital_status",
+          "label": "Marital Status",
+          "type": "option_list",
+          "options": ["Single", "Married", "Other"],
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Marital_Status"
+        },
+        {
+          "key": "guardian_spouse_name",
+          "label": "Parent / Spouse Name",
+          "type": "name",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Guardian_Spouse"
+        },
+        {
+          "key": "number_of_children",
+          "label": "Number of Children",
+          "type": "number",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Children_Count"
+        },
+        {
+          "key": "address",
+          "label": "Address",
+          "type": "free_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Address"
+        }
+      ]
+    },
+    {
+      "id": "medical_history",
+      "title": "Medical History",
+      "fields": [
+        {
+          "key": "known_allergies",
+          "label": "Known Allergies",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": true,
+          "glossary_scope": "medications",
+          "alert_hook": "check_allergy",
+          "export_column": "Allergies"
+        },
+        {
+          "key": "abdominal_digestive",
+          "label": "Abdominal Pain / Indigestion / Constipation",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Abdominal_History"
+        },
+        {
+          "key": "menstrual_pcod",
+          "label": "Irregular Periods / PCOD / Menopause",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Menstrual_PCOD"
+        },
+        {
+          "key": "dermatology_ent",
+          "label": "Skin, Hair, Ear or Nose Problem",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Skin_ENT_History"
+        },
+        {
+          "key": "current_medications",
+          "label": "Current or Previous Medications",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": false,
+          "glossary_scope": "medications",
+          "export_column": "Medications"
+        },
+        {
+          "key": "previous_surgeries",
+          "label": "Previous Surgery / Hospitalization",
+          "type": "yes_no_specify",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Surgeries"
+        },
+        {
+          "key": "social_history",
+          "label": "Social History (Alcohol, Smoking, Tobacco)",
+          "type": "tick_group",
+          "options": ["Alcohol", "Smoking", "Tobacco", "None"],
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Social_Habits"
+        },
+        {
+          "key": "physical_activity",
+          "label": "Physical Activity",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Physical_Activity"
+        },
+        {
+          "key": "other_medical_issues",
+          "label": "Other Medical Issues",
+          "type": "free_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Other_Issues"
+        },
+        {
+          "key": "family_members_count",
+          "label": "Number of Family Members",
+          "type": "number",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Family_Count"
+        },
+        {
+          "key": "personal_physician",
+          "label": "Personal Physician",
+          "type": "short_text",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Personal_Physician"
+        }
+      ]
+    },
+    {
+      "id": "family_history",
+      "title": "Family History",
+      "fields": [
+        {
+          "key": "family_thyroid",
+          "label": "Thyroid (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Thyroid"
+        },
+        {
+          "key": "family_diabetes",
+          "label": "Diabetes (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Diabetes"
+        },
+        {
+          "key": "family_heart_disease",
+          "label": "Heart Disease (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Heart"
+        },
+        {
+          "key": "family_hypertension",
+          "label": "Hypertension (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_HTN"
+        },
+        {
+          "key": "family_cancer",
+          "label": "Cancer (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Cancer"
+        },
+        {
+          "key": "family_epilepsy",
+          "label": "Epilepsy (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Epilepsy"
+        },
+        {
+          "key": "family_asthma",
+          "label": "Asthma (Relation)",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Asthma"
+        },
+        {
+          "key": "family_other",
+          "label": "Other Family History",
+          "type": "tick_relation",
+          "writer": "student_staff",
+          "required": false,
+          "export_column": "Fam_Other"
+        }
+      ]
+    },
+    {
+      "id": "consent",
+      "title": "Informed Consent",
+      "fields": [
+        {
+          "key": "consent_screening",
+          "label": "Consent to Clinical Screening",
+          "type": "yes_no",
+          "writer": "student_staff",
+          "required": true,
+          "export_column": "Consent_Screening"
+        },
+        {
+          "key": "consent_data_research",
+          "label": "Consent to Data & Research Processing",
+          "type": "yes_no",
+          "writer": "student_staff",
+          "required": true,
+          "export_column": "Consent_Research"
+        },
+        {
+          "key": "signature_present",
+          "label": "Participant Signature Present",
+          "type": "signature_present",
+          "writer": "student_staff",
+          "required": true,
+          "export_column": "Signature_Present"
+        }
+      ]
+    }
+  ]
+}

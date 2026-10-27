@@ -224,3 +224,82 @@ def test_admin_billing_and_credits(client):
     assert purch_res.json["credits_added"] == 500
     assert purch_res.json["new_limit"] >= 3000
 
+def test_patient_referral_slip_pdf(client):
+    # 1. Create a patient record with clinical referral notes
+    create_res = client.post("/api/records", json={
+        "camp_id": "camp_adyar_01",
+        "person_name": "Kavitha Ranganathan",
+        "age": "28",
+        "gender": "Female",
+        "height": "160",
+        "weight": "78",
+        "blood_pressure": "144/92",
+        "examination_details": "Normal respiratory sounds. Elevated BMI and Grade 1 dental caries.",
+        "referral_details": "Cardiology & Dental OPD for follow-up evaluation",
+        "structured_record": {
+            "personal_information": {"full_name": {"value": "Kavitha Ranganathan"}, "age": {"value": "28"}},
+            "referral": {"specialist_referred_to": {"value": "Cardiology OPD"}}
+        }
+    })
+    assert create_res.status_code == 201
+    rec_id = create_res.json["id"]
+
+    # 2. Fetch printable referral slip PDF
+    slip_res = client.get(f"/api/records/{rec_id}/referral-slip")
+    assert slip_res.status_code == 200
+    assert slip_res.mimetype == "application/pdf"
+    assert slip_res.data.startswith(b"%PDF")
+    assert len(slip_res.data) > 1000
+
+def test_draft_review_preserves_needs_review(client):
+    # Create record
+    create_res = client.post("/api/records", json={
+        "camp_id": "camp_adyar_01",
+        "person_name": "Draft Patient",
+        "age": "30",
+        "gender": "Male"
+    })
+    assert create_res.status_code == 201
+    rec_id = create_res.json["id"]
+    assert create_res.json["status"] == "needs_review"
+
+    # Save draft with explicit status='needs_review'
+    review_res = client.put(f"/api/records/{rec_id}/review", json={
+        "person_name": "Draft Patient Edited",
+        "age": "31",
+        "status": "needs_review",
+        "reviewed_by": "Dr. Priya (Draft)"
+    })
+    assert review_res.status_code == 200
+    assert review_res.json["person_name"] == "Draft Patient Edited"
+    assert review_res.json["status"] == "needs_review"
+
+
+def test_extract_v2_json_payload(client):
+    res = client.post("/api/extract/v2", json={
+        "template_id": "tpl_adult_examination_v9_1",
+        "raw_model_json": {
+            "blood_pressure": {"raw_text": "120/80", "confidence": 0.95},
+            "pulse_rate": {"raw_text": "72", "confidence": 0.98},
+            "sys_respiratory": {"raw_text": "NAD", "confidence": 0.92}
+        }
+    })
+    assert res.status_code == 200
+    data = res.json
+    assert data["success"] is True
+    fields = data["result"]["fields"]
+    assert fields["blood_pressure"]["normalized_value"] == "120/80"
+    # Verify glossary expanded NAD
+    assert "No Abnormality Detected" in fields["sys_respiratory"]["normalized_value"]
+
+
+def test_extract_v2_invalid_template(client):
+    res = client.post("/api/extract/v2", json={
+        "template_id": "tpl_nonexistent_999",
+        "raw_model_json": {"test": "val"}
+    })
+    assert res.status_code == 404
+    assert res.json["code"] == "TEMPLATE_NOT_FOUND"
+
+
+

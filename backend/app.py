@@ -38,15 +38,25 @@ try:
     from backend.services.ai_service import AIService, extract as ai_extract
     from backend.services.groq_service import GroqService
     from backend.services.gemini_service import GeminiService
+    from backend.services.nvidia_nim_service import NvidiaNimService
     from backend.services.record_service import RecordService
     from backend.services.supabase_service import SupabaseService
+    from backend.services.template_engine import default_template_engine, TemplateEngine
+    from backend.services.invariants import wrap_field_value, format_screening_alert
+    from backend.services.extraction_v2 import default_extraction_pipeline, ExtractionV2Pipeline
+    from backend.services.glossary_service import default_glossary_service
 except ImportError:
     import database
     from services.ai_service import AIService, extract as ai_extract
     from services.groq_service import GroqService
     from services.gemini_service import GeminiService
+    from services.nvidia_nim_service import NvidiaNimService
     from services.record_service import RecordService
     from services.supabase_service import SupabaseService
+    from services.template_engine import default_template_engine, TemplateEngine
+    from services.invariants import wrap_field_value, format_screening_alert
+    from services.extraction_v2 import default_extraction_pipeline, ExtractionV2Pipeline
+    from services.glossary_service import default_glossary_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,8 +64,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("doc_scanner")
 
-ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per image
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except Exception:
+    pass
+
+ALLOWED_MIME_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/jpg",
+    "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"
+}
+MAX_FILE_SIZE = 15 * 1024 * 1024  # 15 MB per image (supports high-res iPhone photos)
+
 
 def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
     """Application factory for Flask API."""
@@ -134,9 +154,11 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
         return supabase_service.is_configured()
 
     def get_ai_service() -> AIService:
-        provider = os.getenv("AI_PROVIDER", "gemini").lower().strip()
+        provider = os.getenv("AI_PROVIDER", "nvidia" if os.getenv("NVIDIA_API_KEY") else "gemini").lower().strip()
         if provider == "groq":
             return GroqService()
+        if provider == "nvidia":
+            return NvidiaNimService()
         return GeminiService()
 
     @app.after_request
@@ -219,19 +241,23 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
             
         date_str = data.get("date_str", "Today").strip() or "Today"
         location = data.get("location", "Chennai Health Camp")
+        target_group = (data.get("target_group") or "adult").strip().lower()
+        if target_group not in ("adult", "paediatric"):
+            target_group = "adult"
+
         if is_supabase_enabled():
             try:
                 camp = supabase_service.create_camp(name, expected, date_str)
                 # Also persist locally in SQLite for resilience using the exact same ID
                 try:
-                    database.create_camp(name, expected, date_str, location=location, camp_id=camp.get("id"), db_path=db_path)
+                    database.create_camp(name, expected, date_str, location=location, camp_id=camp.get("id"), target_group=target_group, db_path=db_path)
                 except Exception as db_err:
                     logger.warning("Local camp mirror warning: %s", db_err)
                 return jsonify(camp), 201
             except Exception as e:
                 logger.error("Failed to create camp in Supabase: %s; falling back to SQLite", e)
 
-        camp = database.create_camp(name, expected, date_str, location=location, db_path=db_path)
+        camp = database.create_camp(name, expected, date_str, location=location, target_group=target_group, db_path=db_path)
         return jsonify(camp), 201
 
     @app.route("/api/camps/<camp_id>", methods=["GET"])
@@ -308,6 +334,34 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
         rec = database.get_record_by_id(record_id, db_path)
         if not rec:
             return jsonify({"error": "Record not found"}), 404
+        return jsonify(rec)
+
+    @app.route("/api/camps/<camp_id>/paediatric-records", methods=["GET"])
+    def list_camp_paediatric_records(camp_id):
+        status_filter = request.args.get("status")
+        limit = min(int(request.args.get("limit", 100)), 500)
+        recs = database.list_paediatric_records(camp_id=camp_id, status=status_filter, limit=limit, db_path=db_path)
+        return jsonify(recs)
+
+    @app.route("/api/camps/<camp_id>/adult-records", methods=["GET"])
+    def list_camp_adult_records(camp_id):
+        status_filter = request.args.get("status")
+        limit = min(int(request.args.get("limit", 100)), 500)
+        recs = database.list_adult_records(camp_id=camp_id, status=status_filter, limit=limit, db_path=db_path)
+        return jsonify(recs)
+
+    @app.route("/api/paediatric-records/<record_id>", methods=["GET"])
+    def get_paediatric_record(record_id):
+        rec = database.get_paediatric_record_by_id(record_id, db_path)
+        if not rec:
+            return jsonify({"error": "Paediatric record not found"}), 404
+        return jsonify(rec)
+
+    @app.route("/api/adult-records/<record_id>", methods=["GET"])
+    def get_adult_record(record_id):
+        rec = database.get_adult_record_by_id(record_id, db_path)
+        if not rec:
+            return jsonify({"error": "Adult record not found"}), 404
         return jsonify(rec)
 
     @app.route("/api/records", methods=["POST"])
@@ -405,6 +459,11 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
                     "error": "flags_unresolved",
                     "message": "Approval refused: flagged fields remain unresolved."
                 }), 409
+            if err == "consent_withheld":
+                return jsonify({
+                    "error": "consent_withheld",
+                    "message": "Approval refused: Patient or parental consent is withheld or not given."
+                }), 403
             return jsonify({"error": err or "Failed to approve record"}), 404
 
         return jsonify({
@@ -474,6 +533,30 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
             "erased": success,
             "message": "Patient data and source images permanently deleted under DPDP Act."
         })
+
+    @app.route("/api/records/<record_id>/referral-slip", methods=["GET"])
+    def get_referral_slip(record_id):
+        """Generate and stream a 1-page printable clinical referral slip PDF."""
+        rec = database.get_record_by_id(record_id, db_path)
+        if not rec:
+            return jsonify({"error": "Record not found"}), 404
+
+        pdf_dir = os.path.join(frontend_dir, "uploads", "referral_slips")
+        os.makedirs(pdf_dir, exist_ok=True)
+        pdf_filename = f"referral_slip_{record_id}.pdf"
+        output_pdf_path = os.path.join(pdf_dir, pdf_filename)
+
+        database.generate_patient_referral_pdf(rec, output_pdf_path)
+
+        with open(output_pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={pdf_filename}"}
+        )
+
 
     @app.route("/api/admin/billing", methods=["GET"])
     def admin_billing():
@@ -822,7 +905,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
     # --- AI Extraction API ---
     @app.route("/api/extract", methods=["POST"])
-    @limiter.exempt
+    @limiter.limit("10/minute")
     def extract_document():
         """Accepts student_form and health_assessment sheets, checks quota/dedup, and calls AI extractor."""
         # Support both new standard names and backward-compatible page1/page2
@@ -843,7 +926,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
         if sf_mime not in ALLOWED_MIME_TYPES or ha_mime not in ALLOWED_MIME_TYPES:
             return jsonify({
-                "error": "Invalid image format. Allowed formats: JPEG, PNG, WebP.",
+                "error": "Invalid image format. Allowed formats: JPEG, PNG, WebP, HEIC/HEIF.",
                 "code": "INVALID_MIME_TYPE"
             }), 400
 
@@ -852,7 +935,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
 
         if len(sf_bytes) > MAX_FILE_SIZE or len(ha_bytes) > MAX_FILE_SIZE:
             return jsonify({
-                "error": "Image file size exceeds the 10 MB limit.",
+                "error": "Image file size exceeds the 15 MB limit.",
                 "code": "FILE_TOO_LARGE"
             }), 400
 
@@ -860,17 +943,178 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
         record_id = request.form.get("record_id") or request.args.get("record_id")
         org_id = request.headers.get("X-Org-ID") or request.form.get("org_id") or request.args.get("org_id") or "org_default"
 
+        # Permanent Image Storage: Write images to uploads/ for permanent preview persistence & DPDP compliance
+        uploads_dir = os.path.join(frontend_dir, "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+        scan_token = f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
+        p1_fname = f"{camp_id}_{scan_token}_p1.jpg"
+        p2_fname = f"{camp_id}_{scan_token}_p2.jpg"
+        p1_path = os.path.join(uploads_dir, p1_fname)
+        p2_path = os.path.join(uploads_dir, p2_fname)
+        with open(p1_path, "wb") as f1:
+            f1.write(sf_bytes)
+        with open(p2_path, "wb") as f2:
+            f2.write(ha_bytes)
+        page1_permanent_url = f"/uploads/{p1_fname}"
+        page2_permanent_url = f"/uploads/{p2_fname}"
+
+        # Dynamic AI API Key, Provider, and Model overrides
+        dynamic_key = (
+            request.headers.get("X-AI-API-Key")
+            or request.headers.get("X-API-Key")
+            or request.form.get("api_key")
+            or request.args.get("api_key")
+        )
+        dynamic_provider = (
+            request.headers.get("X-AI-Provider")
+            or request.form.get("ai_provider")
+            or request.args.get("ai_provider")
+        )
+        dynamic_model = (
+            request.headers.get("X-AI-Model")
+            or request.form.get("model")
+            or request.args.get("model")
+        )
+
         result = ai_extract(
             student_form_bytes=sf_bytes,
             health_assessment_bytes=ha_bytes,
             camp_id=camp_id,
             record_id=record_id,
             org_id=org_id,
-            db_path=db_path
+            db_path=db_path,
+            api_key=dynamic_key,
+            provider=dynamic_provider,
+            model=dynamic_model
         )
+
+        # Inject permanent URLs so client saves durable image links in database
+        result["page1_url"] = page1_permanent_url
+        result["page2_url"] = page2_permanent_url
+        if isinstance(result.get("data"), dict):
+            result["data"]["page1_url"] = page1_permanent_url
+            result["data"]["page2_url"] = page2_permanent_url
 
         http_code = result.get("http_status", 200 if result.get("success") else 422)
         return jsonify(result), http_code
+
+    @app.route("/api/extract/v2", methods=["POST"])
+    def extract_document_v2():
+        """Phase 3 Extraction v2: Template-driven extraction with field-scoped glossary and invariants."""
+        # Check for JSON payload normalization
+        json_data = request.get_json(silent=True) or {}
+        if json_data.get("template_id") and (json_data.get("raw_model_json") or json_data.get("data")):
+            t_id = json_data.get("template_id")
+            raw_json = json_data.get("raw_model_json") or json_data.get("data")
+            try:
+                processed = default_extraction_pipeline.process_extracted_payload(t_id, raw_json)
+                return jsonify({"success": True, "result": processed}), 200
+            except KeyError as ke:
+                return jsonify({"success": False, "error": str(ke), "code": "TEMPLATE_NOT_FOUND"}), 404
+            except Exception as e:
+                return jsonify({"success": False, "error": str(e), "code": "NORMALIZATION_ERROR"}), 422
+
+        # Check for image file upload
+        file = request.files.get("image") or request.files.get("page") or request.files.get("student_form")
+        if not file:
+            return jsonify({
+                "error": "No image file or extraction JSON provided. Expecting 'image' file or 'raw_model_json' payload.",
+                "code": "MISSING_INPUT"
+            }), 400
+
+        img_bytes = file.read()
+        t_id = request.form.get("template_id") or request.args.get("template_id")
+        footer_code = request.form.get("footer_code") or request.args.get("footer_code")
+        header_text = request.form.get("header_text") or request.args.get("header_text")
+
+        if not t_id:
+            classification = default_template_engine.classify_page(footer_code, header_text)
+            t_id = classification.get("template_id") or "tpl_adult_examination_v9_1"
+
+        tpl = default_template_engine.get_template(t_id)
+        if not tpl:
+            return jsonify({"error": f"Template '{t_id}' not registered.", "code": "TEMPLATE_NOT_FOUND"}), 404
+
+        # Save permanent scan file
+        uploads_dir = os.path.join(frontend_dir, "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+        scan_token = f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
+        p_name = f"v2_{scan_token}.jpg"
+        p_path = os.path.join(uploads_dir, p_name)
+        with open(p_path, "wb") as f_out:
+            f_out.write(img_bytes)
+
+        # Process form inputs through extraction pipeline
+        form_payload = {}
+        for sec in tpl.get("sections", []):
+            for f in sec.get("fields", []):
+                val = request.form.get(f["key"])
+                if val is not None:
+                    form_payload[f["key"]] = {"raw_text": val, "confidence": 0.95}
+
+        processed = default_extraction_pipeline.process_extracted_payload(t_id, form_payload)
+        processed["image_url"] = f"/uploads/{p_name}"
+        processed["image_hash"] = default_extraction_pipeline.compute_image_hash(img_bytes)
+
+        return jsonify({
+            "success": True,
+            "template_id": t_id,
+            "template_title": tpl.get("title", ""),
+            "data": processed,
+            "code": "EXTRACTION_SUCCESS"
+        }), 200
+
+    # --- Unified AI Pipeline Status & Telemetry ---
+    @app.route("/api/ai/status", methods=["GET"])
+    def get_ai_status():
+        """Returns auto-detected AI provider configuration, model, and guardrail parameters."""
+        try:
+            from backend.services.unified_pipeline import detect_ai_provider, PROVIDER_DEFAULTS
+        except ImportError:
+            from services.unified_pipeline import detect_ai_provider, PROVIDER_DEFAULTS
+        
+        req_key = (
+            request.headers.get("X-AI-API-Key") or
+            request.args.get("api_key") or
+            ""
+        ).strip()
+        req_provider = (
+            request.headers.get("X-AI-Provider") or
+            request.args.get("provider") or
+            ""
+        ).strip().lower()
+
+        detected_provider = detect_ai_provider(req_key, preferred=req_provider) if req_key or req_provider else detect_ai_provider("")
+        cfg = PROVIDER_DEFAULTS.get(detected_provider, {})
+
+        configured_providers = []
+        for prov, info in PROVIDER_DEFAULTS.items():
+            key = os.getenv(f"{prov.upper()}_API_KEY", "")
+            if key and len(key) > 8:
+                configured_providers.append({
+                    "provider": prov,
+                    "name": info["name"],
+                    "primary_model": info["primary_model"],
+                    "fallback_model": info["fallback_model"]
+                })
+
+        return jsonify({
+            "unified_pipeline": True,
+            "active_provider": detected_provider,
+            "provider_name": cfg.get("name", detected_provider),
+            "primary_model": cfg.get("primary_model"),
+            "fallback_model": cfg.get("fallback_model"),
+            "configured_providers": configured_providers,
+            "guardrail_parameters": {
+                "flag_confidence": float(os.getenv("FLAG_CONFIDENCE", "0.8")),
+                "flag_confidence_measure": float(os.getenv("FLAG_CONFIDENCE_MEASURE", "0.9")),
+                "image_max_edge_px": int(os.getenv("IMAGE_MAX_EDGE_PX", "1568")),
+                "timeout_seconds": int(os.getenv("AI_TIMEOUT_SECONDS", "60")),
+                "max_retries": int(os.getenv("AI_MAX_RETRIES", "2")),
+                "temperature": 0.0,
+                "max_output_tokens": 4000
+            }
+        })
 
     # --- Phase 3 Usage & Metering Endpoints (Admin-Only) ---
     @app.route("/api/usage", methods=["GET"])
@@ -1046,6 +1290,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
     def export_all():
         camp_id = request.args.get("camp_id")
         only_reviewed = request.args.get("only_reviewed", "false").lower() == "true"
+        form_type = request.args.get("type") or request.args.get("form_type") or request.args.get("template")
         fmt = request.args.get("format", "xlsx").lower()
         if fmt == "csv":
             csv_data = record_service.generate_csv_export(camp_id=camp_id, only_reviewed=only_reviewed)
@@ -1056,8 +1301,35 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
                 headers={"Content-Disposition": f"attachment; filename={filename}"}
             )
 
-        excel_data = record_service.generate_excel_export(camp_id=camp_id, only_reviewed=only_reviewed)
-        filename = f"clinic_records_{camp_id or 'all'}.xlsx"
+        excel_data = record_service.generate_excel_export(camp_id=camp_id, only_reviewed=only_reviewed, form_type=form_type)
+        prefix = f"{form_type}_" if form_type else ""
+        filename = f"{prefix}clinic_records_{camp_id or 'all'}.xlsx"
+        return Response(
+            excel_data,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    @app.route("/api/export/adult/excel", methods=["GET"])
+    def export_adult_excel_endpoint():
+        """Dedicated endpoint to download formatted Adult Health Screening Excel workbook."""
+        camp_id = request.args.get("camp_id")
+        only_reviewed = request.args.get("only_reviewed", "false").lower() == "true"
+        excel_data = record_service.generate_adult_excel_export(camp_id=camp_id, only_reviewed=only_reviewed)
+        filename = f"Adult_Health_Records_{camp_id or 'all'}.xlsx"
+        return Response(
+            excel_data,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    @app.route("/api/export/paediatric/excel", methods=["GET"])
+    def export_paediatric_excel_endpoint():
+        """Dedicated endpoint to download formatted Paediatric School Health Screening Excel workbook."""
+        camp_id = request.args.get("camp_id")
+        only_reviewed = request.args.get("only_reviewed", "false").lower() == "true"
+        excel_data = record_service.generate_paediatric_excel_export(camp_id=camp_id, only_reviewed=only_reviewed)
+        filename = f"Paediatric_Health_Records_{camp_id or 'all'}.xlsx"
         return Response(
             excel_data,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1065,10 +1337,12 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
         )
 
     @app.route("/api/camps/<camp_id>/export", methods=["GET"])
+    @app.route("/api/camps/<camp_id>/export/excel", methods=["GET"])
     def export_camp(camp_id):
         camp = database.get_camp_by_id(camp_id, db_path)
         raw_name = camp.get("name", "Organization") if camp else "Organization"
         safe_name = re.sub(r'[^a-zA-Z0-9_\-]', '_', raw_name).strip('_') or f"Org_{camp_id}"
+        form_type = request.args.get("type") or request.args.get("form_type") or request.args.get("template")
         fmt = request.args.get("format", "xlsx").lower()
         if fmt == "csv":
             csv_data = record_service.generate_csv_export(camp_id=camp_id, only_reviewed=False)
@@ -1079,13 +1353,127 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
                 headers={"Content-Disposition": f"attachment; filename={filename}"}
             )
 
-        excel_data = record_service.generate_excel_export(camp_id=camp_id, only_reviewed=False)
+        excel_data = record_service.generate_excel_export(camp_id=camp_id, only_reviewed=False, form_type=form_type)
         filename = f"{safe_name}_Health_Records.xlsx"
         return Response(
             excel_data,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
+
+    # --- Separate Forms Structure & Attributes API ---
+    @app.route("/api/forms", methods=["GET"])
+    def list_forms_catalog():
+        """List all available form definitions (adult/paediatric suites + individual pages) with attribute counts."""
+        forms = default_template_engine.list_forms()
+        return jsonify({
+            "forms": forms,
+            "count": len(forms)
+        })
+
+    @app.route("/api/forms/<form_id>", methods=["GET"])
+    def get_form_structure_endpoint(form_id):
+        """Get complete hierarchical structure (pages, sections, fields, validations) for a form."""
+        structure = default_template_engine.get_form_structure(form_id)
+        if not structure:
+            return jsonify({"error": f"Form structure '{form_id}' not found."}), 404
+        return jsonify(structure)
+
+    @app.route("/api/forms/<form_id>/attributes", methods=["GET"])
+    def get_form_attributes_endpoint(form_id):
+        """Get flat attribute dictionary for a form (clinical labels, types, writers, export columns)."""
+        structure = default_template_engine.get_form_structure(form_id)
+        if not structure:
+            return jsonify({"error": f"Form '{form_id}' not found."}), 404
+        attributes = default_template_engine.get_form_attributes(form_id)
+        return jsonify({
+            "form_id": structure["id"],
+            "title": structure["title"],
+            "family": structure["family"],
+            "attributes": attributes,
+            "count": len(attributes)
+        })
+
+    @app.route("/api/forms/<form_id>/schema", methods=["GET"])
+    def get_form_schema_endpoint(form_id):
+        """Get dynamic UI rendering schema for tabs and form inputs."""
+        canon_id = default_template_engine.resolve_form_id(form_id)
+        if canon_id in default_template_engine.templates:
+            return jsonify(default_template_engine.generate_ui_schema(canon_id))
+        
+        # Composite forms UI schema (combines tabs of both pages)
+        structure = default_template_engine.get_form_structure(form_id)
+        if not structure:
+            return jsonify({"error": f"Form '{form_id}' not found."}), 404
+
+        merged_tabs = []
+        for p in structure.get("pages", []):
+            page_title = p.get("title", f"Page {p.get('page_number')}")
+            for sec in p.get("sections", []):
+                fields = []
+                for f in sec.get("fields", []):
+                    fields.append({
+                        "key": f["key"],
+                        "label": f["label"],
+                        "type": f["type"],
+                        "required": f.get("required", False),
+                        "options": f.get("options", []),
+                        "validation": f.get("validation"),
+                        "glossary_scope": f.get("glossary_scope"),
+                        "alert_hook": f.get("alert_hook"),
+                        "export_column": f.get("export_column") or f["key"]
+                    })
+                merged_tabs.append({
+                    "id": f"p{p.get('page_number')}_{sec['id']}",
+                    "title": f"[{page_title[:10]}] {sec['title']}",
+                    "page_number": p.get("page_number"),
+                    "fields": fields
+                })
+
+        return jsonify({
+            "form_id": structure["id"],
+            "title": structure["title"],
+            "family": structure["family"],
+            "tabs": merged_tabs
+        })
+
+    # --- Template Engine & Case Pairing Endpoints (Phase 2) ---
+    @app.route("/api/templates", methods=["GET"])
+    def list_templates():
+        """List all available declarative clinical templates."""
+        return jsonify({
+            "templates": default_template_engine.list_templates(),
+            "count": len(default_template_engine.templates)
+        })
+
+    @app.route("/api/templates/<template_id>", methods=["GET"])
+    def get_template(template_id):
+        """Get full template definition or dynamic UI schema."""
+        tpl = default_template_engine.get_template(template_id)
+        if not tpl:
+            return jsonify({"error": f"Template '{template_id}' not found."}), 404
+        if request.args.get("ui_schema", "false").lower() == "true":
+            return jsonify(default_template_engine.generate_ui_schema(template_id))
+        return jsonify(tpl)
+
+    @app.route("/api/templates/classify", methods=["POST"])
+    def classify_page_template():
+        """Classify page template based on footer code or title text."""
+        data = request.get_json(silent=True) or {}
+        footer_code = data.get("footer_code")
+        header_text = data.get("header_text")
+        result = default_template_engine.classify_page(footer_code, header_text)
+        return jsonify(result)
+
+    @app.route("/api/cases/pair", methods=["POST"])
+    def pair_case_endpoint():
+        """Pair history and examination page payloads into a unified Case."""
+        data = request.get_json(silent=True) or {}
+        history_page = data.get("history_page") or {}
+        exam_page = data.get("exam_page") or {}
+        session_id = data.get("session_id")
+        result = default_template_engine.pair_case(history_page, exam_page, session_id=session_id)
+        return jsonify(result)
 
     # --- Clear / Reset Data ---
     @app.route("/api/reset-demo", methods=["POST"])

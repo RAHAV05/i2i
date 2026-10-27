@@ -1,0 +1,355 @@
+{
+  "id": "tpl_paediatric_examination_v9_7",
+  "family": "paediatric",
+  "page_type": "examination",
+  "footer_code": "ASF-D&A-PCS-9.7/07/26",
+  "version": "1.0.0",
+  "title": "Paediatric Clinical Examination Form (Doctor Assessment)",
+  "pairing_keys": ["moc_doc_id", "admission_id", "person_name", "class_and_section"],
+  "regions": {
+    "header": {"x": 0.05, "y": 0.02, "w": 0.90, "h": 0.12},
+    "measurements": {"x": 0.05, "y": 0.14, "w": 0.90, "h": 0.16},
+    "general_exam": {"x": 0.05, "y": 0.30, "w": 0.90, "h": 0.20},
+    "systems": {"x": 0.05, "y": 0.50, "w": 0.90, "h": 0.22},
+    "vision_dental": {"x": 0.05, "y": 0.72, "w": 0.90, "h": 0.16},
+    "referral_sign": {"x": 0.05, "y": 0.88, "w": 0.90, "h": 0.11}
+  },
+  "sections": [
+    {
+      "id": "header",
+      "title": "Header & Student Identification",
+      "fields": [
+        {
+          "key": "person_name",
+          "label": "Student Full Name",
+          "type": "name",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^[A-Za-z\\s.]{2,80}$",
+          "export_column": "Patient_Name"
+        },
+        {
+          "key": "class_and_section",
+          "label": "Class & Section",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": true,
+          "export_column": "Class_Section"
+        },
+        {
+          "key": "exam_date",
+          "label": "Date of Examination",
+          "type": "date",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^\\d{2}[-/.]\\d{2}[-/.]\\d{4}$",
+          "export_column": "Exam_Date"
+        },
+        {
+          "key": "admission_id",
+          "label": "Admission ID / Roll No",
+          "type": "id",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "export_column": "Admission_ID"
+        },
+        {
+          "key": "moc_doc_id",
+          "label": "Moc Doc ID",
+          "type": "id",
+          "writer": "doctor",
+          "required": false,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "export_column": "Moc_Doc_ID"
+        }
+      ]
+    },
+    {
+      "id": "measurements",
+      "title": "Growth Measurements & Biometrics",
+      "fields": [
+        {
+          "key": "age",
+          "label": "Age (Years)",
+          "type": "number",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^([1-9]|1[0-8])$",
+          "export_column": "Age"
+        },
+        {
+          "key": "height",
+          "label": "Height (cm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^(4[0-9]|[5-9][0-9]|1[0-9]{2}|2[0-4][0-9])(\\.\\d+)?$",
+          "export_column": "Height_cm"
+        },
+        {
+          "key": "weight",
+          "label": "Weight (kg)",
+          "type": "number",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^([1-9]|[1-9][0-9]|1[0-9]{2})(\\.\\d+)?$",
+          "export_column": "Weight_kg"
+        },
+        {
+          "key": "waist_circumference",
+          "label": "Waist Circumference (cm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Waist_cm"
+        },
+        {
+          "key": "bmi",
+          "label": "BMI (kg/m²)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "alert_hook": "check_paediatric_bmi",
+          "export_column": "BMI"
+        },
+        {
+          "key": "blood_pressure",
+          "label": "Blood Pressure (mmHg)",
+          "type": "blood_pressure",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^\\d{2,3}/\\d{2,3}$",
+          "alert_hook": "check_paediatric_bp",
+          "export_column": "Blood_Pressure"
+        },
+        {
+          "key": "pulse",
+          "label": "Pulse Rate (bpm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "validation": "^([3-9][0-9]|1[0-9]{2}|2[0-4][0-9])$",
+          "export_column": "Pulse_bpm"
+        },
+        {
+          "key": "spinal_caliper_atr",
+          "label": "Spinal Caliper ATR (Degrees)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "alert_hook": "check_spinal_atr",
+          "export_column": "Spinal_ATR_Deg"
+        }
+      ]
+    },
+    {
+      "id": "general_exam",
+      "title": "General Physical Examination & Otoscopy",
+      "fields": [
+        {
+          "key": "vital_signs_status",
+          "label": "General Vitals (Normal / Abnormal)",
+          "type": "option_list",
+          "options": ["Normal", "Abnormal"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Vitals_Status"
+        },
+        {
+          "key": "vital_signs_details",
+          "label": "Vital Signs Abnormal Details",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Vitals_Abnormal_Details"
+        },
+        {
+          "key": "gait_status",
+          "label": "Gait & Posture (Normal / Abnormal)",
+          "type": "option_list",
+          "options": ["Normal", "Abnormal"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Gait_Status"
+        },
+        {
+          "key": "gait_details",
+          "label": "Gait Abnormality Details",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Gait_Abnormal_Details"
+        },
+        {
+          "key": "otoscope_right_ear",
+          "label": "Otoscope Findings Right Ear",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Otoscope_Right"
+        },
+        {
+          "key": "otoscope_left_ear",
+          "label": "Otoscope Findings Left Ear",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Otoscope_Left"
+        }
+      ]
+    },
+    {
+      "id": "systems",
+      "title": "Pediatric System Examination",
+      "fields": [
+        {
+          "key": "sys_nose",
+          "label": "Nose (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Nose"
+        },
+        {
+          "key": "sys_throat",
+          "label": "Throat (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Throat"
+        },
+        {
+          "key": "sys_skin",
+          "label": "Skin (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Skin"
+        },
+        {
+          "key": "sys_hair",
+          "label": "Hair (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Sys_Hair"
+        },
+        {
+          "key": "sys_other_systems",
+          "label": "Other System Findings (RS, CVS, Abdomen)",
+          "type": "free_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Other"
+        }
+      ]
+    },
+    {
+      "id": "vision_dental",
+      "title": "Vision & Dental Screening",
+      "fields": [
+        {
+          "key": "vision_aid_status",
+          "label": "Visual Aid Status",
+          "type": "option_list",
+          "options": ["Unaided", "Aided - Glass", "Aided - Lens", "Not brought glass", "Couldn't be Assessed"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Vision_Aid"
+        },
+        {
+          "key": "vision_distant_right",
+          "label": "Distant Vision Right (OD)",
+          "type": "fraction",
+          "options": ["6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60"],
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "vision",
+          "export_column": "Vision_OD"
+        },
+        {
+          "key": "vision_distant_left",
+          "label": "Distant Vision Left (OS)",
+          "type": "fraction",
+          "options": ["6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60"],
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "vision",
+          "export_column": "Vision_OS"
+        },
+        {
+          "key": "vision_color",
+          "label": "Color Vision Screening",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Vision_Color"
+        },
+        {
+          "key": "dental_status",
+          "label": "Dental Status",
+          "type": "option_list",
+          "options": ["Normal", "Abnormal"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Dental_Status"
+        },
+        {
+          "key": "dental_abnormality",
+          "label": "Dental Abnormality Details (Caries, Malocclusion, etc.)",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Dental_Abnormality"
+        },
+        {
+          "key": "dental_advice",
+          "label": "Dental Advice / Pediatric Dentist Referral",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "dental",
+          "export_column": "Dental_Advice"
+        }
+      ]
+    },
+    {
+      "id": "referral_sign",
+      "title": "Referral & Physician Authentication",
+      "fields": [
+        {
+          "key": "specialist_referred_to",
+          "label": "Specialist Referred To",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Specialist_Referred"
+        },
+        {
+          "key": "doctor_name",
+          "label": "Examining Pediatrician / Doctor Name",
+          "type": "name",
+          "writer": "doctor",
+          "required": true,
+          "export_column": "Doctor_Name"
+        },
+        {
+          "key": "doctor_signature",
+          "label": "Doctor Signature Present",
+          "type": "signature_present",
+          "writer": "doctor",
+          "required": true,
+          "export_column": "Doctor_Signature"
+        }
+      ]
+    }
+  ]
+}

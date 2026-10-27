@@ -159,6 +159,11 @@ class RecordService:
             "status": "needs_review",
             "page1_preview": data.get("page1_preview"),
             "page2_preview": data.get("page2_preview"),
+            "original_ai_extraction": data.get("original_ai_extraction") or data.get("structured_record", {}),
+            "quality_warning_bypassed": data.get("quality_warning_bypassed", []),
+            "target_group": data.get("target_group") or (camp.get("target_group") if camp else "adult"),
+            "is_paediatric": 1 if (data.get("is_paediatric") or (camp and camp.get("target_group") == "paediatric")) else 0,
+            "paediatric_alerts": data.get("paediatric_alerts", []),
             "reviewer_notes": None,
             "reviewed_by": None,
             "reviewed_at": None
@@ -305,14 +310,125 @@ class RecordService:
 
         return output.getvalue()
 
-    def generate_excel_export(self, camp_id: Optional[str] = None, only_reviewed: bool = False) -> bytes:
+    @staticmethod
+    def _write_attributes_sheet(wb, form_id: str, tab_color: str, header_bg: str) -> None:
+        """Write declarative Form Structure & Attributes Dictionary as Sheet 2 for clinical auditability."""
+        from backend.services.template_engine import default_template_engine
+
+        ws_attrs = wb.add_worksheet("Form Attributes")
+        ws_attrs.set_tab_color(tab_color)
+        ws_attrs.freeze_panes(1, 2)
+
+        attr_hdr_fmt = wb.add_format({
+            'bold': True, 'font_name': 'Calibri', 'font_size': 10,
+            'bg_color': header_bg, 'font_color': '#FFFFFF',
+            'valign': 'vcenter', 'align': 'center',
+            'border': 1, 'border_color': '#E2E8F0', 'text_wrap': True
+        })
+        attr_cell_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9,
+            'valign': 'vcenter', 'border': 1, 'border_color': '#E2E8F0'
+        })
+        attr_cell_alt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'valign': 'vcenter',
+            'bg_color': '#F8FAFC', 'border': 1, 'border_color': '#E2E8F0'
+        })
+        badge_req_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'bold': True,
+            'valign': 'vcenter', 'align': 'center',
+            'bg_color': '#FEF2F2', 'font_color': '#DC2626',
+            'border': 1, 'border_color': '#FECACA'
+        })
+        badge_opt_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9,
+            'valign': 'vcenter', 'align': 'center',
+            'bg_color': '#F3F4F6', 'font_color': '#6B7280',
+            'border': 1, 'border_color': '#E5E7EB'
+        })
+
+        cols = [
+            ("Attribute Key", 22),
+            ("Clinical Label", 34),
+            ("Page", 10),
+            ("Page Type", 14),
+            ("Section", 26),
+            ("Data Type", 16),
+            ("Recorded By", 16),
+            ("Mandatory", 12),
+            ("Excel Export Header", 24),
+            ("Validation Rule", 26)
+        ]
+        ws_attrs.set_row(0, 32)
+        for c_idx, (col_name, col_width) in enumerate(cols):
+            ws_attrs.set_column(c_idx, c_idx, col_width)
+            ws_attrs.write_string(0, c_idx, col_name, attr_hdr_fmt)
+
+        attributes = default_template_engine.get_form_attributes(form_id)
+        for row_idx, a in enumerate(attributes, start=1):
+            r_fmt = attr_cell_alt if row_idx % 2 == 0 else attr_cell_fmt
+            ws_attrs.set_row(row_idx, 20)
+            ws_attrs.write_string(row_idx, 0, sanitize_csv_cell(a.get("key") or ""), r_fmt)
+            ws_attrs.write_string(row_idx, 1, sanitize_csv_cell(a.get("label") or ""), r_fmt)
+            ws_attrs.write_number(row_idx, 2, int(a.get("page_number") or 1), r_fmt)
+            ws_attrs.write_string(row_idx, 3, sanitize_csv_cell(str(a.get("page_type") or "").capitalize()), r_fmt)
+            ws_attrs.write_string(row_idx, 4, sanitize_csv_cell(a.get("section_title") or ""), r_fmt)
+            ws_attrs.write_string(row_idx, 5, sanitize_csv_cell(a.get("type") or ""), r_fmt)
+            ws_attrs.write_string(row_idx, 6, sanitize_csv_cell(str(a.get("writer") or "").capitalize()), r_fmt)
+            is_req = bool(a.get("required"))
+            ws_attrs.write_string(row_idx, 7, "Required" if is_req else "Optional", badge_req_fmt if is_req else badge_opt_fmt)
+            ws_attrs.write_string(row_idx, 8, sanitize_csv_cell(a.get("export_column") or a.get("key") or ""), r_fmt)
+            ws_attrs.write_string(row_idx, 9, sanitize_csv_cell(a.get("validation") or ""), r_fmt)
+
+    def generate_excel_export(
+        self,
+        camp_id: Optional[str] = None,
+        only_reviewed: bool = False,
+        form_type: Optional[str] = None
+    ) -> bytes:
         """Generate formatted Excel (.xlsx) workbook with columns in exact form field order (Page 1 → Page 2)."""
         status_filter = "reviewed" if only_reviewed else None
         records = database.list_records(camp_id=camp_id, status=status_filter, limit=10000, db_path=self.db_path)
         camps = database.list_camps_with_stats(self.db_path)
+        selected_camp = None
         if camp_id:
-            camps = [c for c in camps if c["id"] == camp_id]
+            matching = [c for c in camps if c["id"] == camp_id]
+            if matching:
+                selected_camp = matching[0]
+            camps = matching
 
+        # Route to segregated paediatric export if explicitly requested or camp target_group is paediatric
+        norm_type = (form_type or "").strip().lower()
+        if norm_type in ("paediatric", "pediatric", "school"):
+            is_paediatric = True
+        elif norm_type in ("adult", "university", "general"):
+            is_paediatric = False
+        else:
+            is_paediatric = bool(selected_camp and selected_camp.get("target_group") == "paediatric")
+            if not is_paediatric and records and any(r.get("target_group") == "paediatric" or r.get("is_paediatric") for r in records):
+                is_paediatric = True
+
+        if is_paediatric:
+            return self._generate_paediatric_excel_export(camp_id=camp_id, camp=selected_camp, records=records, only_reviewed=only_reviewed)
+
+        return self._generate_adult_excel_export(camp_id=camp_id, camp=selected_camp, records=records, camps=camps, only_reviewed=only_reviewed)
+
+    def generate_adult_excel_export(self, camp_id: Optional[str] = None, only_reviewed: bool = False) -> bytes:
+        """Explicitly generate Adult Health Screening (.xlsx) workbook."""
+        return self.generate_excel_export(camp_id=camp_id, only_reviewed=only_reviewed, form_type="adult")
+
+    def generate_paediatric_excel_export(self, camp_id: Optional[str] = None, only_reviewed: bool = False) -> bytes:
+        """Explicitly generate Paediatric School Health Screening (.xlsx) workbook."""
+        return self.generate_excel_export(camp_id=camp_id, only_reviewed=only_reviewed, form_type="paediatric")
+
+    def _generate_adult_excel_export(
+        self,
+        camp_id: Optional[str],
+        camp: Optional[Dict[str, Any]],
+        records: List[Dict[str, Any]],
+        camps: List[Dict[str, Any]],
+        only_reviewed: bool = False
+    ) -> bytes:
+        """Generate formatted Adult Health (.xlsx) workbook with Form Attributes sheet and Camp Summary."""
         output = io.BytesIO()
         wb = xlsxwriter.Workbook(output, {'in_memory': True, 'remove_timezone': True})
 
@@ -489,6 +605,15 @@ class RecordService:
             ("Reviewed At",                     20, False),
             ("Reviewer Notes",                  28, False),
             ("Extraction Notes",                28, False),
+
+            # ── Paediatric Screening & Consent (Phase 6 & 7) ──────────────────
+            ("Consent Status",                  18, True),
+            ("Paediatric BMI Centile",          22, False),
+            ("Paediatric BMI Staging",          24, False),
+            ("Paediatric BP Centile",           22, False),
+            ("Paediatric BP Staging",           24, False),
+            ("ATR Caliper Angle",               18, False),
+            ("Paediatric Screening Alerts",     28, False),
         ]
 
         for col_idx, (col_name, col_width, is_section) in enumerate(columns):
@@ -671,14 +796,26 @@ class RecordService:
                 str(r.get("reviewed_at") or ""),
                 str(r.get("reviewer_notes") or ""),
                 str(r.get("extraction_notes") or ""),
+
+                # Paediatric Screening & Consent (Phase 6 & 7)
+                "Consent Withheld" if (r.get("consent_given") is False or _val(p.get("consent_screening")).lower() in ("no", "withheld")) else "Given",
+                str((sr.get("paediatric_screening") or {}).get("bmi_centile") or r.get("paediatric_bmi_centile") or ""),
+                str((sr.get("paediatric_screening") or {}).get("bmi_classification") or r.get("paediatric_bmi_classification") or ""),
+                str((sr.get("paediatric_screening") or {}).get("bp_percentile") or r.get("paediatric_bp_percentile") or ""),
+                str((sr.get("paediatric_screening") or {}).get("bp_classification") or r.get("paediatric_bp_classification") or ""),
+                str(((sr.get("paediatric_screening") or {}).get("atr_classification") or {}).get("atr_value") or _val(h.get("adams_forward_bend_test_atr")) or ""),
+                ", ".join(r.get("paediatric_alerts") or (sr.get("paediatric_screening") or {}).get("paediatric_alerts") or []),
             ]
 
             ws.set_row(row_idx, 20)
             for c_idx, val in enumerate(row_data):
                 fmt_to_use = st_fmt if c_idx == 2 else row_fmt
-                ws.write_string(row_idx, c_idx, str(val), fmt_to_use)
+                ws.write_string(row_idx, c_idx, sanitize_csv_cell(val), fmt_to_use)
 
-        # ── Sheet 2: Camp Summary ─────────────────────────────────────────────
+        # ── Sheet 2: Form Structure & Attributes Dictionary ──────────────────
+        self._write_attributes_sheet(wb, "adult", tab_color='#AD1457', header_bg='#880E4F')
+
+        # ── Sheet 3: Camp Summary ─────────────────────────────────────────────
         ws_camps = wb.add_worksheet("Camp Summary")
         ws_camps.set_tab_color('#C2185B')
         camp_cols = [
@@ -723,6 +860,300 @@ class RecordService:
             ws_camps.write_number(row_idx, 11, pallor_pos, r_fmt)
             ws_camps.write_number(row_idx, 12, total_referrals, r_fmt)
             ws_camps.write_string(row_idx, 13, str(c.get("created_at") or ""), r_fmt)
+
+        wb.close()
+        output.seek(0)
+        return output.getvalue()
+
+    def _generate_paediatric_excel_export(
+        self,
+        camp_id: Optional[str],
+        camp: Optional[Dict[str, Any]],
+        records: List[Dict[str, Any]],
+        only_reviewed: bool = False
+    ) -> bytes:
+        """Generate specialized Paediatric Health Screening (.xlsx) workbook for school camps."""
+        output = io.BytesIO()
+        wb = xlsxwriter.Workbook(output, {'in_memory': True, 'remove_timezone': True})
+
+        # Formats
+        header_fmt = wb.add_format({
+            'bold': True, 'font_name': 'Calibri', 'font_size': 10,
+            'bg_color': '#0288D1', 'font_color': '#FFFFFF',
+            'valign': 'vcenter', 'align': 'center',
+            'border': 1, 'border_color': '#81D4FA', 'text_wrap': True
+        })
+        section_fmt = wb.add_format({
+            'bold': True, 'font_name': 'Calibri', 'font_size': 10,
+            'bg_color': '#01579B', 'font_color': '#FFFFFF',
+            'valign': 'vcenter', 'align': 'center',
+            'border': 1, 'border_color': '#0277BD', 'text_wrap': True
+        })
+        cell_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9,
+            'valign': 'vcenter', 'border': 1, 'border_color': '#E1F5FE'
+        })
+        cell_alt_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'valign': 'vcenter',
+            'bg_color': '#F1F8E9', 'border': 1, 'border_color': '#E1F5FE'
+        })
+        alert_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'bold': True,
+            'valign': 'vcenter', 'bg_color': '#FFEBEE', 'font_color': '#C62828',
+            'border': 1, 'border_color': '#FFCDD2'
+        })
+        status_reviewed_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'bold': True,
+            'valign': 'vcenter', 'align': 'center',
+            'bg_color': '#E8F5E9', 'font_color': '#2E7D32',
+            'border': 1, 'border_color': '#C8E6C9'
+        })
+        status_to_check_fmt = wb.add_format({
+            'font_name': 'Calibri', 'font_size': 9, 'bold': True,
+            'valign': 'vcenter', 'align': 'center',
+            'bg_color': '#FFF8E1', 'font_color': '#F57F17',
+            'border': 1, 'border_color': '#FFECB3'
+        })
+
+        sheet_name = "Paediatric Records"
+        if camp:
+            c_name = re.sub(r'[:/\\?*\[\]]', '', str(camp.get("name", "School Records")))[:30].strip()
+            sheet_name = c_name or "Paediatric Records"
+
+        ws = wb.add_worksheet(sheet_name)
+        ws.set_tab_color('#0288D1')
+        ws.set_row(0, 42)
+        ws.freeze_panes(1, 4)
+
+        # 55-column School Screening Schema
+        columns = [
+            ("Record ID", 18, False),
+            ("School / Institution", 24, False),
+            ("Class & Section", 14, False),
+            ("Admission / Roll No", 16, False),
+            ("Student Name", 22, False),
+            ("Date of Birth", 12, False),
+            ("Age (Years)", 10, False),
+            ("Gender", 8, False),
+            ("Blood Group", 8, False),
+            ("Parent / Guardian", 20, False),
+            ("Emergency Contact", 15, False),
+            ("Residential Address", 26, False),
+            ("Birth History", 18, False),
+            ("Developmental Milestones", 20, False),
+            ("Immunization Status", 18, False),
+            ("Dietary Habits", 15, False),
+            ("Known Allergies", 18, False),
+            ("Height (cm)", 10, True),
+            ("Weight (kg)", 10, False),
+            ("BMI (kg/m²)", 10, False),
+            ("BMI Centile (IAP LMS)", 14, False),
+            ("BMI Classification", 16, False),
+            ("Blood Pressure", 12, False),
+            ("BP Centile (AAP 2017)", 14, False),
+            ("BP Classification", 16, False),
+            ("Pulse (bpm)", 10, False),
+            ("Scoliosis ATR (°)", 14, True),
+            ("Scoliosis Risk Status", 16, False),
+            ("Head Circumference (cm)", 14, False),
+            ("MUAC (cm)", 12, False),
+            ("Vital Signs Status", 14, False),
+            ("Gait & Locomotor", 16, False),
+            ("Ears / Hearing", 14, False),
+            ("Otoscopy Findings", 18, False),
+            ("Oral Cavity & Throat", 18, False),
+            ("Lymphadenopathy", 14, False),
+            ("Vision Distant Right", 12, False),
+            ("Vision Distant Left", 12, False),
+            ("Color Vision", 12, False),
+            ("Squint / Strabismus", 14, False),
+            ("Dental Caries", 14, False),
+            ("Dental Malocclusion", 14, False),
+            ("Oral Hygiene", 14, False),
+            ("Dental Advice", 18, False),
+            ("Systemic Findings", 22, False),
+            ("General Clinical Notes", 22, False),
+            ("Referral Specialist", 18, False),
+            ("Referral Reason", 20, False),
+            ("Paediatric Alert Flags", 28, True),
+            ("Parental Consent", 14, False),
+            ("Screening Doctor", 18, False),
+            ("Review Status", 12, False),
+            ("Doctor Notes", 22, False),
+            ("Reviewed By", 16, False),
+            ("Reviewed At", 18, False)
+        ]
+
+        for col_idx, (col_name, col_width, is_divider) in enumerate(columns):
+            ws.set_column(col_idx, col_idx, col_width)
+            fmt = section_fmt if is_divider else header_fmt
+            ws.write_string(0, col_idx, col_name, fmt)
+
+        # Helper to unpack extraction fields
+        def _get(val: Any) -> str:
+            if val is None:
+                return ""
+            if isinstance(val, dict):
+                v = val.get("value")
+                return "" if v is None else str(v).strip()
+            return str(val).strip()
+
+        for row_idx, r in enumerate(records, start=1):
+            row_fmt = cell_alt_fmt if row_idx % 2 == 0 else cell_fmt
+            sr = r.get("structured_record") or {}
+            p = sr.get("personal_information") or {}
+            v = sr.get("vitals") or {}
+            d = sr.get("dental_assessment") or {}
+            vis = sr.get("vision_assessment") or {}
+            ref = sr.get("referral") or {}
+            hist = sr.get("medical_history") or {}
+            paed = sr.get("paediatric_growth") or {}
+            pscreen = sr.get("paediatric_screening") or {}
+
+            # Calculated alerts & flags
+            alerts = r.get("paediatric_alerts") or pscreen.get("alerts") or []
+            if isinstance(alerts, str):
+                try:
+                    alerts = json.loads(alerts)
+                except Exception:
+                    alerts = [alerts]
+            alerts_str = ", ".join(alerts) if alerts else "None"
+
+            atr_val = _get(paed.get("spinal_caliper_atr") or v.get("spinal_caliper_atr") or r.get("spinal_caliper_atr"))
+            atr_status = "Negative / Normal"
+            try:
+                if atr_val and float(re.findall(r'[\d.]+', str(atr_val))[0]) >= 5.0:
+                    atr_status = "ALERT: Scoliosis Suspect (ATR >= 5°)"
+            except Exception:
+                pass
+
+            status = r.get("status") or "needs_review"
+            st_fmt = status_reviewed_fmt if status in ("reviewed", "approved") else status_to_check_fmt
+
+            row_data = [
+                r.get("id") or "",
+                _get(p.get("institution") or p.get("school_name") or r.get("school_name")),
+                _get(r.get("class_and_section") or f"{_get(p.get('course'))} {_get(p.get('section'))}".strip()),
+                _get(p.get("admission_id") or r.get("admission_id")),
+                _get(p.get("full_name") or r.get("person_name")),
+                _get(p.get("dob") or r.get("dob")),
+                _get(p.get("age") or r.get("age")),
+                _get(p.get("gender") or r.get("gender")),
+                _get(p.get("blood_group") or r.get("blood_group")),
+                _get(p.get("parent_or_spouse") or r.get("parent_guardian_name")),
+                _get(p.get("mobile") or r.get("emergency_contact_phone")),
+                _get(p.get("address") or r.get("address")),
+                _get(sr.get("birth_history") or r.get("birth_history")),
+                _get(sr.get("milestones") or r.get("milestones")),
+                _get(sr.get("immunization_status") or r.get("immunization_status")),
+                _get(sr.get("dietary_habits") or r.get("dietary_habits")),
+                _get(hist.get("allergy") or r.get("known_allergies")),
+                _get(v.get("height_cm") or r.get("height")),
+                _get(v.get("weight_kg") or r.get("weight")),
+                _get(paed.get("bmi") or pscreen.get("bmi") or r.get("bmi")),
+                _get(paed.get("bmi_centile") or pscreen.get("bmi_centile") or r.get("bmi_centile")),
+                _get(paed.get("bmi_classification") or pscreen.get("bmi_classification") or r.get("bmi_classification")),
+                _get(v.get("bp") or r.get("blood_pressure")),
+                _get(paed.get("bp_percentile") or pscreen.get("bp_percentile") or r.get("bp_percentile")),
+                _get(paed.get("bp_classification") or pscreen.get("bp_classification") or r.get("bp_classification")),
+                _get(v.get("pulse") or r.get("pulse")),
+                atr_val,
+                atr_status,
+                _get(v.get("head_circumference") or r.get("head_circumference")),
+                _get(v.get("muac") or r.get("muac")),
+                _get(r.get("vital_signs_status")),
+                _get(sr.get("gait_status") or r.get("gait_status")),
+                _get(sr.get("systemic_examination", {}).get("ear") or r.get("ears_hearing_status")),
+                _get(sr.get("otoscopy_findings") or r.get("otoscopy_findings")),
+                _get(sr.get("systemic_examination", {}).get("throat") or r.get("oral_cavity_throat")),
+                _get(sr.get("general_signs", {}).get("lymphadenopathy") or r.get("lymph_nodes")),
+                _get(vis.get("right_eye") or r.get("vision_distant_right")),
+                _get(vis.get("left_eye") or r.get("vision_distant_left")),
+                _get(sr.get("color_vision") or r.get("color_vision")),
+                _get(sr.get("squint_strabismus") or r.get("squint_strabismus")),
+                _get(d.get("dental_abnormality") or r.get("dental_caries")),
+                _get(sr.get("malocclusion") or r.get("malocclusion")),
+                _get(d.get("dental_status") or r.get("oral_hygiene")),
+                _get(d.get("dental_advice")),
+                _get(r.get("systemic_findings") or sr.get("systemic_examination")),
+                _get(r.get("examination_details")),
+                _get(ref.get("specialist") or r.get("referral_specialist")),
+                _get(ref.get("reason") or r.get("referral_reason")),
+                alerts_str,
+                "Given" if r.get("consent_given", True) else "Consent Withheld",
+                r.get("scanned_by") or "Dr. Priya",
+                status,
+                r.get("reviewer_notes") or "",
+                r.get("reviewed_by") or "",
+                r.get("reviewed_at") or ""
+            ]
+
+            ws.set_row(row_idx, 20)
+            for c_idx, val in enumerate(row_data):
+                fmt_to_use = row_fmt
+                if c_idx == 51:
+                    fmt_to_use = st_fmt
+                elif c_idx in (27, 48) and ("ALERT" in str(val) or len(alerts) > 0):
+                    fmt_to_use = alert_fmt
+                ws.write_string(row_idx, c_idx, sanitize_csv_cell(val), fmt_to_use)
+
+        # Sheet 2: Form Structure & Attributes Dictionary
+        self._write_attributes_sheet(wb, "paediatric", tab_color='#0277BD', header_bg='#01579B')
+
+        # Sheet 3: Paediatric Camp Summary
+        ws_summary = wb.add_worksheet("Paediatric Summary")
+        ws_summary.set_tab_color('#01579B')
+        summary_cols = [
+            ("School / Camp Name", 28),
+            ("Camp Date", 14),
+            ("Total Screened", 14),
+            ("Needs Review", 12),
+            ("Reviewed & Approved", 16),
+            ("Underweight (<3rd %ile)", 18),
+            ("Overweight/Obese (>85th %ile)", 20),
+            ("Hypertension Suspects", 18),
+            ("Scoliosis Alerts (ATR >= 5°)", 20),
+            ("Dental Caries Cases", 16),
+            ("Vision Impairment Cases", 18),
+            ("Parental Consent Withheld", 18)
+        ]
+        for col_idx, (col_name, col_width) in enumerate(summary_cols):
+            ws_summary.set_column(col_idx, col_idx, col_width)
+            ws_summary.write_string(0, col_idx, col_name, header_fmt)
+
+        c_name = camp.get("name") if camp else "School Screening Camp"
+        c_date = camp.get("date_str") if camp else "Today"
+        total_scanned = len(records)
+        needs_review = sum(1 for r in records if r.get("status") == "needs_review")
+        reviewed = sum(1 for r in records if r.get("status") in ("reviewed", "approved"))
+        underweight = sum(1 for r in records if "underweight" in str(r.get("bmi_classification", "")).lower())
+        overweight = sum(1 for r in records if any(k in str(r.get("bmi_classification", "")).lower() for k in ("overweight", "obese")))
+        htn = sum(1 for r in records if any(k in str(r.get("bp_classification", "")).lower() for k in ("stage 1", "stage 2", "hypertension")))
+        scoliosis = sum(1 for r in records if any("scoliosis" in str(a).lower() for a in r.get("paediatric_alerts", [])))
+        caries = sum(1 for r in records if "caries" in str(r.get("dental_caries", "")).lower())
+        vision_issues = sum(1 for r in records if str(r.get("vision_distant_right", "")).strip() not in ("", "6/6") or str(r.get("vision_distant_left", "")).strip() not in ("", "6/6"))
+        consent_withheld = sum(1 for r in records if r.get("consent_given") is False)
+
+        sum_row = [
+            sanitize_csv_cell(c_name),
+            sanitize_csv_cell(c_date),
+            total_scanned,
+            needs_review,
+            reviewed,
+            underweight,
+            overweight,
+            htn,
+            scoliosis,
+            caries,
+            vision_issues,
+            consent_withheld
+        ]
+        ws_summary.set_row(1, 20)
+        for c_idx, val in enumerate(sum_row):
+            if isinstance(val, (int, float)):
+                ws_summary.write_number(1, c_idx, val, cell_fmt)
+            else:
+                ws_summary.write_string(1, c_idx, str(val), cell_fmt)
 
         wb.close()
         output.seek(0)

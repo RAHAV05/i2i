@@ -1,0 +1,387 @@
+{
+  "id": "tpl_adult_examination_v9_1",
+  "family": "adult",
+  "page_type": "examination",
+  "footer_code": "ASF-D&A-AC 9.1/03/25",
+  "version": "1.0.0",
+  "title": "Adult Health Examination Form: Clinical Examination & Vitals",
+  "pairing_keys": ["person_name", "exam_date"],
+  "regions": {
+    "header": {"x": 0.05, "y": 0.02, "w": 0.90, "h": 0.10},
+    "vitals": {"x": 0.05, "y": 0.12, "w": 0.90, "h": 0.22},
+    "signs": {"x": 0.05, "y": 0.34, "w": 0.90, "h": 0.14},
+    "systems": {"x": 0.05, "y": 0.48, "w": 0.90, "h": 0.28},
+    "vision_dental": {"x": 0.05, "y": 0.76, "w": 0.90, "h": 0.14},
+    "referral_sign": {"x": 0.05, "y": 0.90, "w": 0.90, "h": 0.09}
+  },
+  "sections": [
+    {
+      "id": "header",
+      "title": "Header & Identification",
+      "fields": [
+        {
+          "key": "person_name",
+          "label": "Patient Name",
+          "type": "name",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^[A-Za-z\\s.]{2,80}$",
+          "page_region": {"x": 0.08, "y": 0.04, "w": 0.55, "h": 0.04},
+          "export_column": "Patient_Name"
+        },
+        {
+          "key": "exam_date",
+          "label": "Date of Examination",
+          "type": "date",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^\\d{2}[-/.]\\d{2}[-/.]\\d{4}$",
+          "page_region": {"x": 0.65, "y": 0.04, "w": 0.25, "h": 0.04},
+          "export_column": "Exam_Date"
+        }
+      ]
+    },
+    {
+      "id": "vitals",
+      "title": "Measurements & Physiological Vitals",
+      "fields": [
+        {
+          "key": "height",
+          "label": "Height (cm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^(4[0-9]|[5-9][0-9]|1[0-9]{2}|2[0-4][0-9])(\\.\\d+)?$",
+          "export_column": "Height_cm"
+        },
+        {
+          "key": "weight",
+          "label": "Weight (kg)",
+          "type": "number",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-9]{2})(\\.\\d+)?$",
+          "export_column": "Weight_kg"
+        },
+        {
+          "key": "pulse",
+          "label": "Pulse Rate (bpm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "validation": "^([3-9][0-9]|1[0-9]{2}|2[0-4][0-9])$",
+          "export_column": "Pulse_bpm"
+        },
+        {
+          "key": "blood_pressure",
+          "label": "Blood Pressure (mmHg)",
+          "type": "blood_pressure",
+          "writer": "doctor",
+          "required": true,
+          "validation": "^\\d{2,3}/\\d{2,3}$",
+          "alert_hook": "check_hypertension",
+          "export_column": "Blood_Pressure"
+        },
+        {
+          "key": "rbs",
+          "label": "Random Blood Sugar (mg/dL)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "validation": "^([4-9][0-9]|[1-4][0-9]{2}|500)$",
+          "export_column": "RBS_mg_dL"
+        },
+        {
+          "key": "waist_circumference",
+          "label": "Waist Circumference (cm)",
+          "type": "number",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Waist_cm"
+        },
+        {
+          "key": "ecg_notes",
+          "label": "ECG Findings",
+          "type": "free_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "ECG"
+        },
+        {
+          "key": "echo_notes",
+          "label": "ECHO Findings",
+          "type": "free_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "ECHO"
+        }
+      ]
+    },
+    {
+      "id": "signs",
+      "title": "General Physical Signs",
+      "fields": [
+        {
+          "key": "pallor",
+          "label": "Pallor",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "alert_hook": "check_pallor",
+          "export_column": "Pallor"
+        },
+        {
+          "key": "lymphadenopathy",
+          "label": "Lymphadenopathy",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Lymphadenopathy"
+        },
+        {
+          "key": "deformity",
+          "label": "Deformity",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Deformity"
+        },
+        {
+          "key": "icterus",
+          "label": "Icterus",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Icterus"
+        },
+        {
+          "key": "cyanosis",
+          "label": "Cyanosis",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "alert_hook": "check_cyanosis",
+          "export_column": "Cyanosis"
+        },
+        {
+          "key": "edema",
+          "label": "Edema",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Edema"
+        },
+        {
+          "key": "clubbing",
+          "label": "Clubbing",
+          "type": "yes_no",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Clubbing"
+        }
+      ]
+    },
+    {
+      "id": "systems",
+      "title": "Systemic Examination",
+      "fields": [
+        {
+          "key": "sys_ear",
+          "label": "Ear (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Ear"
+        },
+        {
+          "key": "sys_nose",
+          "label": "Nose (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Nose"
+        },
+        {
+          "key": "sys_throat",
+          "label": "Throat (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Throat"
+        },
+        {
+          "key": "sys_respiratory",
+          "label": "Respiratory System / RS (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_RS"
+        },
+        {
+          "key": "sys_cvs",
+          "label": "Cardiovascular System / CVS (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_CVS"
+        },
+        {
+          "key": "sys_abdomen",
+          "label": "Abdomen (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Abdomen"
+        },
+        {
+          "key": "sys_cns",
+          "label": "Central Nervous System / CNS (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_CNS"
+        },
+        {
+          "key": "sys_skin",
+          "label": "Skin (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "examination",
+          "export_column": "Sys_Skin"
+        },
+        {
+          "key": "sys_hair",
+          "label": "Hair (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Sys_Hair"
+        },
+        {
+          "key": "sys_musculoskeletal",
+          "label": "Musculoskeletal (Normal / Details)",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Sys_Musculoskeletal"
+        },
+        {
+          "key": "sys_others",
+          "label": "Other System Findings",
+          "type": "system_check",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Sys_Others"
+        },
+        {
+          "key": "psychological_consultation",
+          "label": "Psychological Consultation Needed",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Psych_Consult"
+        }
+      ]
+    },
+    {
+      "id": "vision_dental",
+      "title": "Vision & Dental Screening",
+      "fields": [
+        {
+          "key": "vision_aid_status",
+          "label": "Visual Aid Status",
+          "type": "option_list",
+          "options": ["Unaided", "Glasses", "Contact Lens", "Not Brought", "Could Not Assess"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Vision_Aid"
+        },
+        {
+          "key": "vision_distant_right",
+          "label": "Distant Vision Right (OD)",
+          "type": "fraction",
+          "options": ["6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60", "CF", "HM", "PL"],
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "vision",
+          "export_column": "Vision_OD"
+        },
+        {
+          "key": "vision_distant_left",
+          "label": "Distant Vision Left (OS)",
+          "type": "fraction",
+          "options": ["6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60", "CF", "HM", "PL"],
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "vision",
+          "export_column": "Vision_OS"
+        },
+        {
+          "key": "dental_status",
+          "label": "Dental Examination Status",
+          "type": "option_list",
+          "options": ["Normal", "Abnormality Detected"],
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Dental_Status"
+        },
+        {
+          "key": "dental_abnormality",
+          "label": "Dental Abnormality Details (Caries, Malocclusion, etc.)",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "dental",
+          "export_column": "Dental_Abnormality"
+        },
+        {
+          "key": "dental_advice",
+          "label": "Dental Advice / Treatment Suggested",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "glossary_scope": "dental",
+          "export_column": "Dental_Advice"
+        }
+      ]
+    },
+    {
+      "id": "referral_sign",
+      "title": "Referral & Physician Authentication",
+      "fields": [
+        {
+          "key": "specialist_referred_to",
+          "label": "Specialist Referred To",
+          "type": "short_text",
+          "writer": "doctor",
+          "required": false,
+          "export_column": "Specialist_Referred"
+        },
+        {
+          "key": "doctor_name",
+          "label": "Examining Physician Name",
+          "type": "name",
+          "writer": "doctor",
+          "required": true,
+          "export_column": "Doctor_Name"
+        },
+        {
+          "key": "doctor_signature",
+          "label": "Doctor Signature Present",
+          "type": "signature_present",
+          "writer": "doctor",
+          "required": true,
+          "export_column": "Doctor_Signature"
+        }
+      ]
+    }
+  ]
+}

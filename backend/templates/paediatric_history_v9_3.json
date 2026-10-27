@@ -1,0 +1,276 @@
+{
+  "id": "tpl_paediatric_history_v9_3",
+  "family": "paediatric",
+  "page_type": "history",
+  "footer_code": "ASF-D&A-PCS-9.3/07/25",
+  "version": "1.0.0",
+  "title": "Paediatric Health Assessment: Student History & Demographics",
+  "pairing_keys": ["moc_doc_id", "admission_id", "person_name", "class_and_section"],
+  "regions": {
+    "header": {"x": 0.05, "y": 0.02, "w": 0.90, "h": 0.12},
+    "child": {"x": 0.05, "y": 0.14, "w": 0.90, "h": 0.28},
+    "medical": {"x": 0.05, "y": 0.42, "w": 0.90, "h": 0.24},
+    "lifestyle": {"x": 0.05, "y": 0.66, "w": 0.90, "h": 0.20},
+    "consent": {"x": 0.05, "y": 0.86, "w": 0.90, "h": 0.12}
+  },
+  "sections": [
+    {
+      "id": "header",
+      "title": "Screening Type & School Identification",
+      "fields": [
+        {
+          "key": "screening_type",
+          "label": "Screening Type",
+          "type": "tick_group",
+          "options": ["General Health", "Dental", "Eye / Vision", "Growth & Development"],
+          "writer": "parent",
+          "required": true,
+          "export_column": "Screening_Type"
+        },
+        {
+          "key": "moc_doc_id",
+          "label": "Moc Doc ID",
+          "type": "id",
+          "writer": "parent",
+          "required": false,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "export_column": "Moc_Doc_ID"
+        },
+        {
+          "key": "admission_id",
+          "label": "Admission ID / Student Roll No",
+          "type": "id",
+          "writer": "parent",
+          "required": true,
+          "validation": "^[A-Za-z0-9_-]{3,20}$",
+          "export_column": "Admission_ID"
+        },
+        {
+          "key": "school_name",
+          "label": "School Name",
+          "type": "short_text",
+          "writer": "parent",
+          "required": true,
+          "export_column": "School_Name"
+        }
+      ]
+    },
+    {
+      "id": "child",
+      "title": "Child Demographics",
+      "fields": [
+        {
+          "key": "person_name",
+          "label": "Child Full Name",
+          "type": "name",
+          "writer": "parent",
+          "required": true,
+          "validation": "^[A-Za-z\\s.]{2,80}$",
+          "export_column": "Patient_Name"
+        },
+        {
+          "key": "class_and_section",
+          "label": "Class & Section",
+          "type": "short_text",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Class_Section"
+        },
+        {
+          "key": "dob",
+          "label": "Date of Birth",
+          "type": "date",
+          "writer": "parent",
+          "required": true,
+          "validation": "^\\d{2}[-/.]\\d{2}[-/.]\\d{4}$",
+          "export_column": "DOB"
+        },
+        {
+          "key": "age",
+          "label": "Age (Years)",
+          "type": "number",
+          "writer": "parent",
+          "required": true,
+          "validation": "^([1-9]|1[0-8])$",
+          "export_column": "Age"
+        },
+        {
+          "key": "gender",
+          "label": "Gender",
+          "type": "option_list",
+          "options": ["Male", "Female", "Other"],
+          "writer": "parent",
+          "required": true,
+          "export_column": "Gender"
+        },
+        {
+          "key": "blood_group",
+          "label": "Blood Group",
+          "type": "option_list",
+          "options": ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Unknown"],
+          "writer": "parent",
+          "required": false,
+          "export_column": "Blood_Group"
+        },
+        {
+          "key": "parent_name",
+          "label": "Parent / Guardian Name",
+          "type": "name",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Parent_Name"
+        },
+        {
+          "key": "mobile_number",
+          "label": "Parent Mobile Number (10 Digits)",
+          "type": "phone",
+          "writer": "parent",
+          "required": true,
+          "validation": "^[6-9]\\d{9}$",
+          "export_column": "Mobile"
+        },
+        {
+          "key": "email",
+          "label": "Parent Email ID",
+          "type": "short_text",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Email"
+        },
+        {
+          "key": "address",
+          "label": "Residential Address",
+          "type": "free_text",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Address"
+        }
+      ]
+    },
+    {
+      "id": "medical",
+      "title": "Medical & Vaccine History",
+      "fields": [
+        {
+          "key": "known_allergies",
+          "label": "Known Allergies (Food / Drugs / Inhalants)",
+          "type": "yes_no_specify",
+          "writer": "parent",
+          "required": true,
+          "glossary_scope": "medications",
+          "alert_hook": "check_allergy",
+          "export_column": "Allergies"
+        },
+        {
+          "key": "current_medication",
+          "label": "Current Long-Term Medications",
+          "type": "yes_no_specify",
+          "writer": "parent",
+          "required": false,
+          "glossary_scope": "medications",
+          "export_column": "Medications"
+        },
+        {
+          "key": "past_surgery",
+          "label": "Past Surgeries / Major Illnesses",
+          "type": "yes_no_specify",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Surgeries"
+        },
+        {
+          "key": "vaccinated_for_age",
+          "label": "Vaccinated for Age According to National Schedule",
+          "type": "yes_no",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Vaccinated_For_Age"
+        }
+      ]
+    },
+    {
+      "id": "lifestyle",
+      "title": "Lifestyle, Behaviour & Family",
+      "fields": [
+        {
+          "key": "behaviour_concerns",
+          "label": "Behaviour / Lifestyle / Learning Concerns",
+          "type": "free_text",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Behaviour_Concerns"
+        },
+        {
+          "key": "other_medical_issues",
+          "label": "Other Chronic Issues (Asthma, Seizures, etc.)",
+          "type": "free_text",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Other_Issues"
+        },
+        {
+          "key": "family_adults_count",
+          "label": "Number of Adults in Family",
+          "type": "number",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Adults_Count"
+        },
+        {
+          "key": "family_minors_count",
+          "label": "Number of Minors/Children in Family",
+          "type": "number",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Minors_Count"
+        },
+        {
+          "key": "pediatrician_name",
+          "label": "Family Pediatrician Name",
+          "type": "short_text",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Pediatrician"
+        }
+      ]
+    },
+    {
+      "id": "consent",
+      "title": "Informed Parental Consent",
+      "fields": [
+        {
+          "key": "consent_screening",
+          "label": "Consent to School Health Screening",
+          "type": "yes_no",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Consent_Screening"
+        },
+        {
+          "key": "consent_first_aid",
+          "label": "Consent to Care & First Aid from Shine Nursing Officer",
+          "type": "yes_no",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Consent_First_Aid"
+        },
+        {
+          "key": "consent_data_research",
+          "label": "Consent to Data & Longitudinal Growth Analytics",
+          "type": "yes_no",
+          "writer": "parent",
+          "required": false,
+          "export_column": "Consent_Research"
+        },
+        {
+          "key": "parent_signature",
+          "label": "Parent Signature Present",
+          "type": "signature_present",
+          "writer": "parent",
+          "required": true,
+          "export_column": "Parent_Signature"
+        }
+      ]
+    }
+  ]
+}

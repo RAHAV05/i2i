@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/logo.png">
-  <link rel="stylesheet" href="css/styles.css?v=20261020_06">
+  <link rel="stylesheet" href="css/styles.css?v=20261025_light_only">
   <script>
     // Global skip hook for initial splash (delegates directly to app module)
     window.finishSplash = function() {
@@ -21,6 +21,61 @@
 </head>
 <body>
 
+  <!-- 1. FULL-SCREEN CLINICAL SPLASH SCREEN (Native Edge-to-Edge AI Scanner Intro) -->
+  <section id="splash">
+    <!-- Ambient Cyber-Clinical Lighting Auras -->
+    <div class="splash-ambient-aura pink"></div>
+    <div class="splash-ambient-aura teal"></div>
+    <div class="splash-ambient-aura violet"></div>
+    <div class="splash-grid-overlay"></div>
+
+    <!-- Top Clinical Status Pill -->
+    <div class="splash-top-bar">
+      <div class="splash-top-badge">
+        <span class="splash-badge-dot"></span>
+        <span id="splash-status-pill-text">CLINICAL VISION AI · INITIALIZING</span>
+      </div>
+    </div>
+
+    <!-- Center Logo Animation Stage (Pure High-Fidelity Optical Scanner Animation) -->
+    <div class="splash-stage">
+      <div class="splash-logo-card">
+        <!-- Target Scanner Corner Reticles -->
+        <span class="reticle-corner top-left"></span>
+        <span class="reticle-corner top-right"></span>
+        <span class="reticle-corner bottom-left"></span>
+        <span class="reticle-corner bottom-right"></span>
+
+        <!-- Dynamic Laser Scanning Line & Light Sheet -->
+        <div class="splash-laser-beam"></div>
+        <div class="splash-laser-sheen"></div>
+
+        <!-- High-Resolution Crisp Brand Logo -->
+        <img src="assets/logo.png" alt="Ink 2 Insight Logo" class="splash-logo-img" draggable="false" />
+      </div>
+    </div>
+
+    <!-- Bottom Progress & Telemetry Pipeline -->
+    <div class="splash-bottom-wrap">
+      <div class="splash-progress-track">
+        <div class="splash-progress-bar" id="splash-progress-bar"></div>
+      </div>
+
+      <div class="splash-status-row">
+        <span id="splash-status-text">Initializing Optical Vision AI Core...</span>
+        <span id="splash-pct">0%</span>
+      </div>
+
+      <!-- Bottom Compliance & Quick Skip -->
+      <div class="splash-bottom-bar">
+        <span class="splash-compliance-tag">🔒 DPDP Act 2023 · SaMD Protocol</span>
+        <button class="splash-skip-btn" onclick="event.stopPropagation(); window.finishSplash();" type="button">
+          Skip &rarr;
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Desktop Viewport Toggle Pill -->
   <button class="view-toggle-pill" id="view-toggle-btn" onclick="window.app ? window.app.toggleFrame() : null" title="Toggle phone frame / expanded view">
     <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
@@ -29,50 +84,8 @@
 
   <div id="phone">
 
-    <!-- 1. SPLASH SCREEN (Ink 2 Insight Native Full-Screen Mobile Intro) -->
-    <section class="scr on" id="splash">
-      <!-- Ambient Lighting Auras for Depth -->
-      <div class="splash-ambient-aura pink"></div>
-      <div class="splash-ambient-aura teal"></div>
-
-      <!-- Top Clinical Status Pill -->
-      <div class="splash-top-bar">
-        <div class="splash-top-badge">
-          <span class="splash-badge-dot"></span>
-          <span>CLINICAL VISION AI · READY</span>
-        </div>
-      </div>
-
-      <!-- Center Logo Animation Stage (Seamless Edge-to-Edge, No Player Box) -->
-      <div class="splash-stage">
-        <video id="splash-video" class="splash-video-element" autoplay muted playsinline preload="auto">
-          <source src="assets/loading.mp4" type="video/mp4">
-        </video>
-      </div>
-
-      <!-- Bottom Streamlined Mobile Intake Progress -->
-      <div class="splash-bottom-wrap">
-        <div class="splash-progress-track">
-          <div class="splash-progress-bar" id="splash-progress-bar"></div>
-        </div>
-
-        <div class="splash-status-row">
-          <span id="splash-status-text">Initializing Vision AI...</span>
-          <span id="splash-pct">0%</span>
-        </div>
-
-        <!-- Bottom Compliance & Quick Skip -->
-        <div class="splash-bottom-bar">
-          <span class="splash-compliance-tag">🔒 DPDP Act 2023 · SaMD Protocol</span>
-          <button class="splash-skip-btn" onclick="event.stopPropagation(); window.finishSplash();" type="button">
-            Skip &rarr;
-          </button>
-        </div>
-      </div>
-    </section>
-
     <!-- 2. LANDING SCREEN — INK 2 INSIGHT CLINICAL INTAKE -->
-    <section class="scr" id="landing">
+    <section class="scr on" id="landing">
       <!-- Top Brand Navigation Bar -->
       <div class="landing-nav">
         <div class="landing-logo-group">
@@ -82,9 +95,14 @@
             <span class="landing-logo-sub">IDEAS TO IMPACT · CLINICAL INTAKE</span>
           </div>
         </div>
-        <button class="landing-nav-btn" onclick="window.app.go('login')" id="landing-login-btn">
-          Sign In
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="notif-bell-btn" style="width:36px;height:36px;border-radius:50%;cursor:pointer;" onclick="window.openAISettingsModal()" title="Unified AI Key Engine Settings" aria-label="AI Key Settings">
+            <span style="font-size:14px;">⚡</span>
+          </button>
+          <button class="landing-nav-btn" onclick="window.app.go('login')" id="landing-login-btn">
+            Sign In
+          </button>
+        </div>
       </div>
 
       <!-- Hero Header -->
@@ -354,9 +372,6 @@
         <div class="header-actions">
           <button class="notif-bell-btn" onclick="window.app.triggerSessionTimeout()" title="Lock Station (Test Page 5: Session Expired Modal)">
             <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </button>
-          <button class="notif-bell-btn" onclick="window.app.openCameraPermissionModal(true)" title="Check Camera Permission (Test Page 6: Camera Permission Modal)">
-            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </button>
           <button class="notif-bell-btn" onclick="window.app.go('records')" title="Notifications & Triage Alerts">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -637,7 +652,7 @@
 
       <!-- Quick Action Utilities -->
       <div class="scan-utils-bar">
-        <input type="file" id="camera-file-input" accept="image/*" style="display:none;" onchange="window.app.onFileUploaded(event)">
+        <input type="file" id="camera-file-input" accept="image/*,.heic,.heif" style="display:none;" onchange="window.app.onFileUploaded(event)">
         <button type="button" class="btn ghost" onclick="window.app.uploadPhoto()">
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
           Upload Form Photo
@@ -645,6 +660,10 @@
         <button type="button" class="btn ghost" onclick="window.app.flipCamera()">
           <svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
           Flip Camera
+        </button>
+        <button type="button" class="btn ghost" id="btn-toggle-torch" onclick="window.app.toggleTorch()" style="display:none;">
+          <span style="font-size:15px;">🔦</span>
+          <span id="torch-btn-text">Torch</span>
         </button>
       </div>
     </section>
@@ -665,8 +684,23 @@
           <div class="sheet" id="pairs-p2-preview" data-t="Page 2: Exam & Referral"></div>
         </div>
 
+        <button type="button" class="btn ghost" id="pairs-swap-btn" style="margin:8px 0 12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;color:var(--teal);border-color:var(--teal);" onclick="window.app.swapScanPages()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
+          Swap Page 1 &amp; Page 2 Slots
+        </button>
+
+        <div id="pairs-swap-alert" style="display:none;background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:12px;padding:12px 14px;margin-bottom:12px;color:#92400E;font-size:12.5px;">
+          <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span>⚠️</span> Possible Page Swap Detected
+          </div>
+          <p style="margin:0 0 8px;font-size:12px;color:#78350F;line-height:1.4;">Slot 1 appears to contain Page 2 (Clinical Exam) while Slot 2 appears to contain Page 1. Tap below to swap them into the correct order.</p>
+          <button type="button" class="btn" style="background:#D97706;color:#fff;padding:6px 14px;font-size:11.5px;font-weight:700;width:auto;" onclick="window.app.swapScanPages()">
+            🔀 Swap Slots Now
+          </button>
+        </div>
+
         <label for="pairs-camp-select" style="font-weight:700;color:var(--ink);font-size:13.5px;">File Under Organization / Club / Committee</label>
-        <select id="pairs-camp-select" style="border:1.5px solid var(--teal);font-weight:600;background:#FFF9FA;">
+        <select id="pairs-camp-select" style="border:1.5px solid var(--teal);font-weight:600;background:var(--input-bg);color:var(--ink);">
           <!-- Populated from state -->
         </select>
 
@@ -698,15 +732,17 @@
 
       <div class="body">
         <!-- Patient Summary Bar -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;margin:12px 0 10px;">
+        <div class="clinical-card" style="padding:12px;margin:12px 0 10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <b id="review-patient-heading" style="font-size:16px;">Patient Name</b>
               <small id="review-camp-label" style="display:block;color:var(--mute);">Health Camp</small>
             </div>
-            <button class="btn ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="window.app.toggleReviewDocs()">
-              📄 Form Images
-            </button>
+            <div style="display:flex;gap:6px;">
+              <button class="btn ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="window.app.toggleReviewDocs()">
+                📄 Images
+              </button>
+            </div>
           </div>
 
           <!-- Collapsible Scanned Document Previews -->
@@ -724,6 +760,74 @@
           </div>
         </div>
 
+        <!-- Optical Quality Bypassed Telemetry Banner -->
+        <div id="review-quality-bypassed-alert" style="display:none;background:#FFFBEB;border:1px solid #F59E0B;border-radius:10px;padding:9px 12px;margin-bottom:12px;align-items:center;gap:8px;color:#92400E;font-size:12px;">
+          <span style="font-size:16px;">⚠️</span>
+          <span id="review-quality-bypassed-msg">Pre-flight optical quality warning was bypassed during intake. Verify all transcribed vitals against source document.</span>
+        </div>
+
+        <!-- Clinical Decision Support & Triage Alerts -->
+        <div id="review-clinical-alerts" style="display:none; flex-direction:column; gap:8px; margin-bottom:14px;">
+          <!-- High BMI Alert Banner -->
+          <div id="alert-high-bmi" style="display:none; background:#FEF2F2; border-left:4px solid #DC2626; border-radius:10px; padding:10px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">🚨</span>
+                <b id="bmi-alert-title" style="font-size:13px; color:#991B1B;">High BMI Alert</b>
+              </div>
+              <span id="bmi-alert-badge" style="font-size:11px; font-weight:800; background:#DC2626; color:#fff; padding:2px 8px; border-radius:12px;">-- kg/m²</span>
+            </div>
+            <p id="bmi-alert-desc" style="font-size:12px; color:#7F1D1D; margin:4px 0 0; line-height:1.4;">
+              Patient falls in Obese Category. Endocrine & lifestyle intervention recommended.
+            </p>
+            <div id="bmi-pediatric-note" style="display:none; font-size:11px; color:#B91C1C; font-weight:600; margin-top:4px;">
+              ⚠️ Pediatric Student: Clinical assessment requires IAP / WHO percentile chart evaluation.
+            </div>
+          </div>
+
+          <!-- Hypertension / BP Crisis Banner -->
+          <div id="alert-hypertension" style="display:none; background:#FFFBEB; border-left:4px solid #D97706; border-radius:10px; padding:10px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">🩸</span>
+                <b id="bp-alert-title" style="font-size:13px; color:#92400E;">Blood Pressure Alert</b>
+              </div>
+              <span id="bp-alert-badge" style="font-size:11px; font-weight:800; background:#D97706; color:#fff; padding:2px 8px; border-radius:12px;">--/--</span>
+            </div>
+            <p id="bp-alert-desc" style="font-size:12px; color:#78350F; margin:4px 0 0; line-height:1.4;">
+              Blood pressure reading outside normal adult limits.
+            </p>
+          </div>
+
+          <!-- Missing Essential Fields Warning Card -->
+          <div id="alert-missing-fields" style="display:none; background:#EFF6FF; border-left:4px solid #2563EB; border-radius:10px; padding:10px 14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">⚠️</span>
+              <b id="missing-fields-title" style="font-size:13px; color:#1E40AF;">Missing Essential Fields</b>
+            </div>
+            <p id="missing-fields-desc" style="font-size:12px; color:#1E3A8A; margin:4px 0 0; line-height:1.4;">
+              Essential clinical fields are unrecorded. Please cross-reference with the physical document.
+            </p>
+          </div>
+
+          <!-- Critical Red Flags (Pallor, Cyanosis, Allergies) -->
+          <div id="alert-red-flags" style="display:none; background:#FFF1F2; border-left:4px solid #E11D48; border-radius:10px; padding:8px 12px; font-size:12px; color:#9F1239; font-weight:600;">
+          </div>
+
+          <!-- Paediatric Screening Alerts Banner (IAP LMS Centiles & ATR Caliper) -->
+          <div id="alert-paediatric-screening" style="display:none; background:#F5F3FF; border-left:4px solid #7C3AED; border-radius:10px; padding:10px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">🧒</span>
+                <b style="font-size:13px; color:#5B21B6;">Paediatric Growth & Screening Alerts (IAP / AAP)</b>
+              </div>
+              <span id="paediatric-alerts-badge" style="font-size:11px; font-weight:800; background:#7C3AED; color:#fff; padding:2px 8px; border-radius:12px;">--</span>
+            </div>
+            <div id="paediatric-alerts-desc" style="font-size:12px; color:#4C1D95; margin:6px 0 0; line-height:1.4;">
+            </div>
+          </div>
+        </div>
+
         <!-- 8-Section Category Tabs -->
         <div class="review-tabs">
           <button class="review-tab-btn active" id="rtab-personal" onclick="window.app.switchReviewTab('personal')">1. Personal & Vitals</button>
@@ -737,21 +841,38 @@
 
         <!-- Section 1: Personal Information & Vitals -->
         <div class="review-section active" id="rsec-personal">
+          <!-- Informed Consent Gating Card -->
+          <div id="consent-gating-card" style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="rev-consent-screening" checked onchange="window.app.onConsentChanged()" style="width:18px;height:18px;accent-color:#16A34A;cursor:pointer;">
+              <label for="rev-consent-screening" style="font-size:13px; font-weight:700; color:#166534; cursor:pointer; margin:0;">
+                Informed Screening Consent Granted
+              </label>
+            </div>
+            <div id="alert-consent-withheld" style="display:none; margin-top:8px; background:#FEF2F2; border-left:4px solid #DC2626; border-radius:6px; padding:8px 10px; font-size:11.5px; color:#991B1B; font-weight:600;">
+              ⚠️ Consent Withheld: Patient or parental consent is required before clinical record approval or data export.
+            </div>
+          </div>
+
           <div class="form-grid single">
             <div>
               <label for="rev-name">Full Name <span class="field-badge-warn" id="badge-name" style="display:none;">Check value</span></label>
-              <input id="rev-name" placeholder="Patient Full Name">
+              <input id="rev-name" placeholder="Patient Full Name" oninput="window.app.onVitalsChanged()">
+              <div class="crop-snippet-preview" id="crop-preview-name" style="display:none;margin-top:6px;border-radius:6px;border:1px solid #FCD34D;background:#FFFBEB;padding:6px;overflow:hidden;">
+                <small style="font-size:10px;font-weight:700;color:#92400E;display:block;margin-bottom:3px;">🔍 Source Handwriting Snippet</small>
+                <canvas id="crop-canvas-name" style="max-width:100%;height:auto;border-radius:4px;display:block;"></canvas>
+              </div>
             </div>
           </div>
 
           <div class="form-grid">
             <div>
               <label for="rev-age">Age</label>
-              <input id="rev-age" placeholder="Age">
+              <input id="rev-age" placeholder="Age" oninput="window.app.onVitalsChanged()">
             </div>
             <div>
               <label for="rev-gender">Gender</label>
-              <select id="rev-gender">
+              <select id="rev-gender" onchange="window.app.onVitalsChanged()">
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
@@ -799,22 +920,35 @@
           <div class="form-grid">
             <div>
               <label for="rev-height">Height (cm)</label>
-              <input id="rev-height" placeholder="Height in cm">
+              <input id="rev-height" placeholder="Height in cm" oninput="window.app.onVitalsChanged()">
             </div>
             <div>
               <label for="rev-weight">Weight (kg)</label>
-              <input id="rev-weight" placeholder="Weight in kg">
+              <input id="rev-weight" placeholder="Weight in kg" oninput="window.app.onVitalsChanged()">
             </div>
+          </div>
+
+          <!-- Real-Time Interactive Live BMI Indicator -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:7px 14px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:14px;">⚖️</span>
+              <span style="font-size:12px; font-weight:700; color:#475569;">Live BMI Calculator:</span>
+            </div>
+            <span id="rev-calculated-bmi" style="font-size:12px; font-weight:800; color:#0284C7; background:#E0F2FE; padding:3px 10px; border-radius:12px;">-- kg/m²</span>
           </div>
 
           <div class="form-grid">
             <div>
               <label for="rev-bp">Blood Pressure <span class="field-badge-warn" id="badge-bp" style="display:none;">Check value</span></label>
-              <input id="rev-bp" placeholder="120/80">
+              <input id="rev-bp" placeholder="120/80" oninput="window.app.onVitalsChanged()">
+              <div class="crop-snippet-preview" id="crop-preview-bp" style="display:none;margin-top:6px;border-radius:6px;border:1px solid #FCD34D;background:#FFFBEB;padding:6px;overflow:hidden;">
+                <small style="font-size:10px;font-weight:700;color:#92400E;display:block;margin-bottom:3px;">🔍 Source Handwriting Snippet</small>
+                <canvas id="crop-canvas-bp" style="max-width:100%;height:auto;border-radius:4px;display:block;"></canvas>
+              </div>
             </div>
             <div>
               <label for="rev-pulse">Pulse (bpm)</label>
-              <input id="rev-pulse" placeholder="Pulse bpm">
+              <input id="rev-pulse" placeholder="Pulse bpm" oninput="window.app.onVitalsChanged()">
             </div>
           </div>
 
@@ -833,7 +967,11 @@
         <!-- Section 2: Medical History -->
         <div class="review-section" id="rsec-medical">
           <label for="rev-allergies">Known Allergies <span class="field-badge-warn" id="badge-allergies" style="display:none;">Check value</span></label>
-          <input id="rev-allergies" placeholder="No known allergies / details">
+          <input id="rev-allergies" placeholder="No known allergies / details" oninput="window.app.onVitalsChanged()">
+          <div class="crop-snippet-preview" id="crop-preview-allergies" style="display:none;margin-top:6px;border-radius:6px;border:1px solid #FCD34D;background:#FFFBEB;padding:6px;overflow:hidden;">
+            <small style="font-size:10px;font-weight:700;color:#92400E;display:block;margin-bottom:3px;">🔍 Source Handwriting Snippet</small>
+            <canvas id="crop-canvas-allergies" style="max-width:100%;height:auto;border-radius:4px;display:block;"></canvas>
+          </div>
 
           <label for="rev-surgery">Previous Surgery / Hospitalization</label>
           <input id="rev-surgery" placeholder="Surgery / Hospitalization details">
@@ -877,10 +1015,15 @@
 
         <!-- Section 4: Health Assessment -->
         <div class="review-section" id="rsec-health">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" class="btn ghost" style="width:auto; padding:6px 14px; font-size:12px; font-weight:700; color:#059669; border-color:#10B981; background:#ECFDF5;" onclick="window.app.markPhysicalExamNormal()">
+              ✨ Quick-Fill Physical Exam as Normal (NAD)
+            </button>
+          </div>
           <div class="form-grid">
             <div>
               <label for="rev-pallor">Pallor</label>
-              <input id="rev-pallor" placeholder="Absent / Present">
+              <input id="rev-pallor" placeholder="Absent / Present" oninput="window.app.onVitalsChanged()">
             </div>
             <div>
               <label for="rev-icterus">Icterus</label>
@@ -891,18 +1034,18 @@
           <div class="form-grid">
             <div>
               <label for="rev-cyanosis">Cyanosis</label>
-              <input id="rev-cyanosis" placeholder="Absent">
+              <input id="rev-cyanosis" placeholder="Absent" oninput="window.app.onVitalsChanged()">
             </div>
             <div>
               <label for="rev-edema">Edema</label>
-              <input id="rev-edema" placeholder="Absent">
+              <input id="rev-edema" placeholder="Absent" oninput="window.app.onVitalsChanged()">
             </div>
           </div>
 
           <div class="form-grid">
             <div>
               <label for="rev-clubbing">Clubbing</label>
-              <input id="rev-clubbing" placeholder="Absent">
+              <input id="rev-clubbing" placeholder="Absent" oninput="window.app.onVitalsChanged()">
             </div>
             <div>
               <label for="rev-lymph">Lymphadenopathy</label>
@@ -919,6 +1062,11 @@
 
         <!-- Section 5: Systemic Examination -->
         <div class="review-section" id="rsec-system">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" class="btn ghost" style="width:auto; padding:6px 14px; font-size:12px; font-weight:700; color:#059669; border-color:#10B981; background:#ECFDF5;" onclick="window.app.markPhysicalExamNormal()">
+              ✨ Quick-Fill Systemic Exam as Normal (NAD)
+            </button>
+          </div>
           <label for="rev-sys-rs">Respiratory System (RS)</label>
           <input id="rev-sys-rs" placeholder="Normal vesicular breath sounds">
 
@@ -1021,7 +1169,7 @@
 
       <div class="body">
         <!-- Organization / Committee Switcher Bar -->
-        <div style="background:#fff;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);margin:10px 0 12px;box-shadow:var(--sh-sm);">
+        <div class="clinical-card" style="padding:12px 14px;margin:10px 0 12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
             <label for="records-org-filter" style="font-size:11.5px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:0.5px;margin:0;">
               Active Club / Organization:
@@ -1041,6 +1189,7 @@
           <button class="review-tab-btn active" id="rf-all" onclick="window.app.setRecordsFilter('all')">All Records</button>
           <button class="review-tab-btn" id="rf-warn" onclick="window.app.setRecordsFilter('needs_review')">To check</button>
           <button class="review-tab-btn" id="rf-ok" onclick="window.app.setRecordsFilter('reviewed')">Approved</button>
+          <button class="review-tab-btn" id="rf-highrisk" style="color:#DC2626;font-weight:700;" onclick="window.app.setRecordsFilter('high_risk')">🚨 High Risk / Flagged</button>
         </div>
 
         <div id="records-full-list" style="margin-top:4px;">
@@ -1086,27 +1235,49 @@
 
       <div class="body">
         <!-- Executive MIS Cockpit Controls -->
-        <div style="background:#fff;border:1px solid #CBD5E1;border-radius:16px;padding:12px 14px;margin:12px 0 10px;box-shadow:0 2px 8px rgba(15,23,42,0.03);">
+        <div class="clinical-card" style="padding:12px 14px;margin:12px 0 10px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:12px;font-weight:700;color:#0F172A;">Health Camp Dataset:</span>
-              <span class="tag" style="background:#E9F4EE;color:#107C41;font-size:10.5px;">All 95 Parameters</span>
+              <span style="font-size:12px;font-weight:700;color:var(--ink);">Health Camp Dataset:</span>
+              <span class="tag" style="background:var(--ok);color:var(--ok-text);font-size:10.5px;">All Parameters</span>
             </div>
-            <label for="export-only-reviewed" style="margin:0;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:#334155;font-weight:600;">
+            <label for="export-only-reviewed" style="margin:0;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--mute);font-weight:600;">
               <input type="checkbox" id="export-only-reviewed" style="width:15px;height:15px;accent-color:#107C41;" onchange="window.app.onExportFilterChanged()">
               Approved only
             </label>
           </div>
-          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
-            <select id="export-camp-select" onchange="window.app.onExportFilterChanged()" style="font-size:12.5px;padding:8px 10px;height:38px;border-radius:10px;border:1px solid #CBD5E1;">
-              <option value="">All Health Camps (All Records)</option>
-            </select>
-            <button class="btn" style="width:auto;height:38px;padding:0 14px;font-size:12px;background:#107C41;border-radius:10px;white-space:nowrap;" onclick="window.app.executeExport()">
-              <svg viewBox="0 0 24 24" style="width:15px;height:15px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-              Download .xlsx
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label for="export-form-type-select" style="font-size:11px;font-weight:700;color:var(--mute);display:block;margin-bottom:3px;">Clinical Form Structure:</label>
+              <select id="export-form-type-select" onchange="window.app.onExportFilterChanged()" style="font-size:12px;padding:6px 10px;height:36px;border-radius:10px;border:1px solid #CBD5E1;width:100%;background:#fff;">
+                <option value="">Auto-Detect from Camp Dataset</option>
+                <option value="adult">Adult Health Form (ASF-D&amp;A-ACS-9.1 / AC-9.1)</option>
+                <option value="paediatric">Paediatric Screening Form (ASF-D&amp;A-PCS-9.3 / PCS-9.7)</option>
+              </select>
+            </div>
+            <div>
+              <label for="export-camp-select" style="font-size:11px;font-weight:700;color:var(--mute);display:block;margin-bottom:3px;">Select Health Camp:</label>
+              <select id="export-camp-select" onchange="window.app.onExportFilterChanged()" style="font-size:12px;padding:6px 10px;height:36px;border-radius:10px;border:1px solid #CBD5E1;width:100%;background:#fff;">
+                <option value="">All Health Camps (All Records)</option>
+              </select>
+            </div>
+          </div>
+          <!-- Fast Dedicated Export Actions -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 8px;">
+            <button class="btn" style="flex:1;min-width:130px;height:34px;padding:0 10px;font-size:11px;background:#D81B60;border-radius:10px;white-space:nowrap;" onclick="window.app.exportAdultExcel()">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+              Adult .xlsx
+            </button>
+            <button class="btn" style="flex:1;min-width:130px;height:34px;padding:0 10px;font-size:11px;background:#0288D1;border-radius:10px;white-space:nowrap;" onclick="window.app.exportPaediatricExcel()">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+              Paediatric .xlsx
+            </button>
+            <button class="btn" style="flex:1;min-width:130px;height:34px;padding:0 10px;font-size:11px;background:#107C41;border-radius:10px;white-space:nowrap;" onclick="window.app.executeExport()">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+              Export Selected .xlsx
             </button>
           </div>
-          <div style="margin-top:8px;">
+          <div style="margin-top:6px;">
             <input id="excel-search-input" placeholder="🔍 Search patient name, ID, vitals, or clinical findings in sheet…" oninput="window.app.filterExcelPreview()" style="font-size:12.5px;padding:8px 12px;margin:0;border-radius:10px;height:36px;background:#F8FAFC;border:1px solid #CBD5E1;">
           </div>
         </div>
@@ -1137,7 +1308,10 @@
 
           <div class="excel-sheet-tabs">
             <button class="excel-sheet-tab active" id="extab-records" onclick="window.app.switchExcelSheetTab('records')">
-              📋 Patient Records (<span id="excel-records-count">0</span>)
+              📋 Clinical Records (<span id="excel-records-count">0</span>)
+            </button>
+            <button class="excel-sheet-tab" id="extab-attributes" onclick="window.app.switchExcelSheetTab('attributes')">
+              📑 Form Attributes &amp; Structure (<span id="excel-attributes-count">0</span>)
             </button>
             <button class="excel-sheet-tab" id="extab-camps" onclick="window.app.switchExcelSheetTab('camps')">
               📊 Camp Summary (<span id="excel-camps-count">0</span>)
@@ -1194,14 +1368,14 @@
         <p style="color:var(--mute);margin-bottom:14px;font-size:13px;">Aggregated physiological vitals and referral pathways across all screened patients.</p>
 
         <!-- Blood Pressure Classification -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(216,27,96,0.04);">
+        <div class="clinical-card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b style="font-size:14px;color:var(--ink);">Blood Pressure Triage</b>
-            <span class="tag" id="analytics-patient-count" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;">128 Patients</span>
+            <span class="tag" id="analytics-patient-count" style="background:var(--primary-light);color:var(--primary);font-size:10.5px;">128 Patients</span>
           </div>
           <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Normal (&lt;120/80)</span>
                 <b id="analytics-bp-normal-pct">62%</b>
               </div>
@@ -1210,7 +1384,7 @@
               </div>
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Pre-Hypertension (120-139/80-89)</span>
                 <b id="analytics-bp-prehtn-pct">24%</b>
               </div>
@@ -1219,7 +1393,7 @@
               </div>
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Stage 1 & 2 HTN (≥140/90)</span>
                 <b id="analytics-bp-htn-pct" style="color:var(--err);">14%</b>
               </div>
@@ -1231,14 +1405,14 @@
         </div>
 
         <!-- BMI Staging -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(216,27,96,0.04);">
+        <div class="clinical-card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b style="font-size:14px;color:var(--ink);">BMI Distribution</b>
-            <span class="tag" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;">Calculated</span>
+            <span class="tag" style="background:var(--primary-light);color:var(--primary);font-size:10.5px;">Calculated</span>
           </div>
           <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Underweight (&lt;18.5)</span>
                 <b id="analytics-bmi-under-pct">14%</b>
               </div>
@@ -1247,7 +1421,7 @@
               </div>
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Normal Weight (18.5 - 24.9)</span>
                 <b id="analytics-bmi-normal-pct">58%</b>
               </div>
@@ -1256,7 +1430,7 @@
               </div>
             </div>
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--ink);">
                 <span>Overweight & Obese (≥25)</span>
                 <b id="analytics-bmi-over-pct">28%</b>
               </div>
@@ -1269,12 +1443,12 @@
 
         <!-- Systemic Findings -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-          <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;">
+          <div class="clinical-card" style="padding:12px;margin:0;">
             <small style="color:var(--mute);text-transform:uppercase;font-size:10px;font-weight:700;">Dental Health</small>
             <b id="analytics-dental-pct" style="font:800 20px 'Bricolage Grotesque';display:block;margin-top:4px;color:var(--primary);">34%</b>
             <span style="font-size:11px;color:var(--mute);">Caries / Cavities Advised</span>
           </div>
-          <div style="background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;">
+          <div class="clinical-card" style="padding:12px;margin:0;">
             <small style="color:var(--mute);text-transform:uppercase;font-size:10px;font-weight:700;">Vision Deficit</small>
             <b id="analytics-vision-pct" style="font:800 20px 'Bricolage Grotesque';display:block;margin-top:4px;color:var(--primary);">18%</b>
             <span style="font-size:11px;color:var(--mute);">Refractive Error &lt;6/6</span>
@@ -1321,51 +1495,51 @@
 
       <div class="body">
         <!-- Doctor Profile Card -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:18px;margin:14px 0 12px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 12px rgba(216,27,96,0.05);">
+        <div class="clinical-card" style="padding:18px;margin:14px 0 12px;display:flex;align-items:center;gap:14px;">
           <div class="av" id="settings-doctor-av" style="width:54px;height:54px;font-size:20px;background:linear-gradient(135deg, #D81B60 0%, #AD1457 100%);">D</div>
           <div style="flex:1;">
             <b id="settings-doctor-name" style="font-size:17px;color:var(--ink);">Attending Physician</b>
             <p id="settings-doctor-email" style="color:var(--mute);font-size:12.5px;margin-top:2px;">physician@hospital.org</p>
-            <span class="tag" id="settings-community-name" style="background:#FCE4EC;color:var(--primary);font-size:10.5px;margin-top:4px;display:inline-block;">Primary Healthcare Outreach</span>
+            <span class="tag" id="settings-community-name" style="background:var(--primary-light);color:var(--primary);font-size:10.5px;margin-top:4px;display:inline-block;">Primary Healthcare Outreach</span>
           </div>
         </div>
 
         <!-- Community Workspace Card -->
-        <div style="background:#FFF9FB;border:1.5px solid #F8BBD0;border-radius:18px;padding:16px;margin-bottom:12px;">
+        <div class="clinical-card-alt" style="border:1.5px solid var(--line);">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <small style="color:var(--primary);text-transform:uppercase;font-size:10.5px;font-weight:700;">Clinical Workspace</small>
-            <span class="tag" style="background:#E6F7F0;color:#059669;font-size:10.5px;">Active Workspace</span>
+            <span class="tag" style="background:var(--ok);color:var(--ok-text);font-size:10.5px;">Active Workspace</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
             <b id="settings-hub-title" style="font-size:15px;color:var(--ink);">Mobile Health Camp Unit</b>
-            <button class="btn ghost" style="width:auto;padding:4px 10px;font-size:11.5px;background:#fff;" onclick="window.app.toast('Clinic workspace code: CAMP-2026')">
+            <button class="btn ghost" style="width:auto;padding:4px 10px;font-size:11.5px;background:var(--card);color:var(--ink);" onclick="window.app.toast('Clinic workspace code: CAMP-2026')">
               Code: CAMP-2026 📋
             </button>
           </div>
         </div>
 
-        <h3 style="font-size:16px;margin:16px 0 8px;">System Diagnostics & Cloud Sync</h3>
+        <h3 style="font-size:16px;margin:16px 0 8px;color:var(--ink);">System Diagnostics & Cloud Sync</h3>
 
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;">
+        <div class="clinical-card" style="padding:14px;margin-bottom:10px;">
           <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Vision AI Engine</small>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-            <b id="settings-ai-provider">Groq Vision (qwen/qwen3.8-27b)</b>
+            <b id="settings-ai-provider" style="color:var(--ink);">Groq Vision (qwen/qwen3.8-27b)</b>
             <span class="tag" id="settings-ai-status">Active API</span>
           </div>
         </div>
 
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;">
+        <div class="clinical-card" style="padding:14px;margin-bottom:10px;">
           <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Cloud Database (PostgreSQL)</small>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-            <b>Supabase Cloud DB</b>
+            <b style="color:var(--ink);">Supabase Cloud DB</b>
             <span class="tag" id="settings-supabase-status">Connected</span>
           </div>
         </div>
 
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
+        <div class="clinical-card" style="padding:14px;margin-bottom:12px;">
           <small style="color:var(--mute);text-transform:uppercase;font-size:10.5px;font-weight:700;">Local Offline Cache</small>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-            <b>SQLite Local Mirror</b>
+            <b style="color:var(--ink);">SQLite Local Mirror</b>
             <span class="tag" id="settings-sqlite-status">Synced</span>
           </div>
         </div>
@@ -1376,18 +1550,18 @@
         </button>
 
         <div class="sec" style="margin-top:16px;">
-          <h3>Usage & Plan Quota</h3>
+          <h3 style="color:var(--ink);">Usage & Plan Quota</h3>
         </div>
 
         <!-- Plan & Quota Card -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
+        <div class="clinical-card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b id="billing-plan-name" style="font-size:15px;color:var(--ink);">Standard Monthly Plan</b>
             <span class="tag ok" id="billing-plan-status">Active</span>
           </div>
           <p id="billing-renews-on" style="color:var(--mute);font-size:12px;margin:4px 0 12px;">Renews on: Loading...</p>
 
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 6px;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:12px 6px;margin-bottom:12px;">
             <div>
               <small style="display:block;color:var(--mute);font-size:11px;">Included</small>
               <b id="billing-papers-included" style="font-size:16px;color:var(--ink);">-</b>
@@ -1408,7 +1582,7 @@
               <span>Usage Telemetry</span>
               <span id="billing-usage-pct">0%</span>
             </div>
-            <div style="width:100%;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden;">
+            <div style="width:100%;height:8px;background:var(--mist);border-radius:4px;overflow:hidden;">
               <div id="billing-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg, #0E7C6B, #D81B60);transition:width 0.4s ease;"></div>
             </div>
           </div>
@@ -1425,11 +1599,11 @@
         </div>
 
         <div class="sec" style="margin-top:16px;">
-          <h3>GST Invoices & Receipts</h3>
+          <h3 style="color:var(--ink);">GST Invoices & Receipts</h3>
         </div>
 
         <!-- Invoices List Card -->
-        <div style="background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;">
+        <div class="clinical-card" style="padding:14px;margin-bottom:12px;">
           <div id="billing-invoices-list" style="display:flex;flex-direction:column;gap:8px;">
             <p style="color:var(--mute);font-size:12.5px;text-align:center;padding:12px 0;">Loading GST invoices...</p>
           </div>
@@ -1728,12 +1902,115 @@
       </div>
     </div>
 
+    <!-- AI PIPELINE KEY CONFIGURATION MODAL -->
+    <div class="modal" id="ai-settings-modal" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(6px);z-index:99999;padding:16px;">
+      <div style="background:var(--bg,#ffffff);border:1px solid var(--border,#e2e8f0);border-radius:20px;padding:24px;width:100%;max-width:440px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);color:var(--text,#0f172a);position:relative;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#E11D48,#BE123C);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">⚡</div>
+            <div>
+              <h3 style="margin:0;font-size:17px;font-weight:700;">Unified AI Key Engine</h3>
+              <span style="font-size:11px;color:var(--mute,#64748b);">One Pipeline · Auto-Detects Any Provider</span>
+            </div>
+          </div>
+          <button type="button" onclick="window.closeAISettingsModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--mute,#64748b);">✕</button>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text,#0f172a);">
+            Insert AI API Key (NVIDIA NIM, Groq, Gemini, Claude, OpenAI)
+          </label>
+          <input type="password" id="modal-ai-api-key" placeholder="Paste your API key (e.g. nvapi-..., gsk_..., AIzaSy...)" 
+                 style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:10px;border:1px solid var(--border,#cbd5e1);background:var(--card-bg,#f8fafc);color:inherit;font-family:monospace;font-size:13px;"
+                 oninput="window.updateAIKeyDetection(this.value)" />
+          <div id="modal-ai-key-detect-pill" style="margin-top:8px;font-size:11px;display:flex;align-items:center;gap:6px;color:var(--mute,#64748b);">
+            <span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;" id="modal-ai-detect-dot"></span>
+            <span id="modal-ai-detect-label">Auto-detect ready: Paste any supported AI key</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:18px;display:flex;flex-direction:column;gap:8px;background:rgba(225,29,72,0.04);border:1px dashed rgba(225,29,72,0.25);border-radius:10px;padding:12px;font-size:11px;line-height:1.5;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--mute,#64748b);">Active Engine:</span>
+            <b id="modal-ai-active-provider" style="color:var(--brand,#E11D48);">Auto-detecting...</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--mute,#64748b);">Default Model:</span>
+            <span id="modal-ai-primary-model" style="font-family:monospace;">-</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--mute,#64748b);">Fallback Escalation:</span>
+            <span id="modal-ai-fallback-model" style="font-family:monospace;">-</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="btn" style="flex:1;background:linear-gradient(135deg,#E11D48,#BE123C);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:600;font-size:13px;cursor:pointer;" onclick="window.saveAISettings()">
+            Save &amp; Activate Key
+          </button>
+          <button type="button" class="btn ghost" style="border:1px solid var(--border,#cbd5e1);border-radius:10px;padding:11px 14px;font-size:12px;cursor:pointer;color:var(--mute,#64748b);" onclick="window.clearAISettings()">
+            Use Server Default (.env)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. PRE-FLIGHT IMAGE QUALITY WARNING MODAL -->
+    <div class="modal" id="modal-quality-alert" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);z-index:99999;padding:16px;">
+      <div style="background:var(--bg,#ffffff);border:1.5px solid #F59E0B;border-radius:20px;padding:24px;width:100%;max-width:420px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);color:var(--text,#0f172a);text-align:center;">
+        <div style="width:54px;height:54px;border-radius:50%;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">
+          ⚠️
+        </div>
+        <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:var(--text,#0f172a);">Image Quality Warning</h3>
+        <p id="quality-alert-message" style="font-size:13.5px;color:#475569;margin:0 0 14px;line-height:1.5;">
+          The captured document appears blurry or has low lighting. Text may be difficult for the Vision AI to transcribe accurately.
+        </p>
+        <div id="quality-metrics-pill" style="font-size:11.5px;font-weight:700;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:6px 12px;margin-bottom:18px;color:#64748B;">
+          Luminance: <span id="quality-metric-lum">--</span> · Sharpness: <span id="quality-metric-sharp">--</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" style="background:#0284C7;color:#fff;border-radius:10px;font-weight:700;padding:12px;" onclick="window.app.retryCaptureFromAlert()">
+            🔄 Retake / Re-upload Photo
+          </button>
+          <button class="btn ghost" id="quality-torch-btn" style="display:none;border-radius:10px;font-weight:700;padding:10px;color:#0284C7;border-color:#0284C7;background:#F0F9FF;" onclick="window.app.turnOnTorchAndRetake()">
+            🔦 Turn On Flashlight &amp; Retake
+          </button>
+          <button class="btn ghost" style="color:#64748B;border:none;font-size:12.5px;font-weight:600;padding:8px;" onclick="window.app.bypassQualityAlert()">
+            ⚡ Proceed Anyway (Use Current Capture)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MISSING ESSENTIAL FIELDS APPROVAL CONFIRMATION MODAL -->
+    <div class="modal" id="modal-missing-confirm" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);z-index:99999;padding:16px;">
+      <div style="background:var(--bg,#ffffff);border:1.5px solid #2563EB;border-radius:20px;padding:24px;width:100%;max-width:420px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);color:var(--text,#0f172a);text-align:center;">
+        <div style="width:54px;height:54px;border-radius:50%;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">
+          📋
+        </div>
+        <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:var(--text,#0f172a);">Approve Incomplete Record?</h3>
+        <p id="missing-confirm-message" style="font-size:13.5px;color:#475569;margin:0 0 14px;line-height:1.5;">
+          The following essential fields are currently blank:
+        </p>
+        <div id="missing-fields-chips" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:18px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn" style="background:#0284C7;color:#fff;border-radius:10px;font-weight:700;padding:12px;" onclick="window.app.closeMissingConfirmModal()">
+            ✍️ Go Back and Fill In
+          </button>
+          <button class="btn ghost" style="border:1px solid #CBD5E1;border-radius:10px;font-weight:600;padding:10px;color:#DC2626;" onclick="window.app.confirmApproveDespiteMissing()">
+            ⚠️ Confirm &amp; Bill Paper (Mark Missing as NAD)
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div class="toast" id="toast"></div>
 
   </div>
 
   <!-- Main Application Logic Module (Cache-Busted) -->
-  <script type="module" src="js/app.js?v=20261020_06"></script>
+  <script type="module" src="js/app.js?v=20261025_clinical_alerts_v2"></script>
 </body>
 </html>

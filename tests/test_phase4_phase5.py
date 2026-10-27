@@ -603,3 +603,65 @@ def test_flask_limiter_enforcement_returns_429(client, app_and_db):
 
     assert 429 in status_codes, f"Expected 429 rate limit response, got: {status_codes}"
 
+
+def test_consent_gating_lock_prevents_doctor_approval_and_returns_403(client, app_and_db):
+    """Test Consent Gating Lock:
+    Doctor approval is refused with HTTP 403 (consent_withheld) if patient
+    or parental consent is blank or marked 'No'.
+    """
+    _, db_path = app_and_db
+    camp = database.create_camp("Camp Consent Test", 50, "Today", db_path)
+    
+    # 1. Record with consent withheld (consent_given = 0)
+    withheld_rec = database.insert_record({
+        "camp_id": camp["id"],
+        "person_name": "Minor Student A",
+        "age": "12",
+        "gender": "Female",
+        "height": "140",
+        "weight": "35",
+        "blood_pressure": "100/65",
+        "consent_given": 0,
+        "structured_record": {
+            "personal_information": {
+                "full_name": {"value": "Minor Student A"},
+                "consent_screening": {"value": "No"}
+            }
+        }
+    }, db_path)
+
+    # Database level check
+    success, _, err = database.approve_record(withheld_rec["id"], approved_by="Dr. Priya", db_path=db_path)
+    assert success is False
+    assert err == "consent_withheld"
+
+    # API endpoint check
+    res_withheld = client.post(f"/api/records/{withheld_rec['id']}/approve", json={"approved_by": "Dr. Priya"})
+    assert res_withheld.status_code == 403
+    assert res_withheld.json["error"] == "consent_withheld"
+
+    # 2. Record with consent granted (consent_given = 1, consent_screening = "Yes")
+    granted_rec = database.insert_record({
+        "camp_id": camp["id"],
+        "person_name": "Consenting Student B",
+        "age": "14",
+        "gender": "Male",
+        "height": "155",
+        "weight": "45",
+        "blood_pressure": "110/70",
+        "consent_given": 1,
+        "uncertain_fields": [],
+        "structured_record": {
+            "personal_information": {
+                "full_name": {"value": "Consenting Student B"},
+                "consent_screening": {"value": "Yes"}
+            }
+        }
+    }, db_path)
+
+    # Database level check
+    success, approved, err = database.approve_record(granted_rec["id"], approved_by="Dr. Priya", db_path=db_path)
+    assert success is True
+    assert approved["status"] == "approved"
+    assert approved["approved_by"] == "Dr. Priya"
+
