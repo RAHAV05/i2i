@@ -7,6 +7,7 @@ Falls back seamlessly to local SQLite if Supabase credentials are not configured
 
 import os
 import json
+import time
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -18,10 +19,45 @@ class SupabaseService:
     def __init__(self, url: Optional[str] = None, key: Optional[str] = None):
         self.url = (url or os.getenv("SUPABASE_URL", "")).rstrip("/")
         self.key = key or os.getenv("SUPABASE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
+        self._circuit_open_until = 0.0
+        self._failure_count = 0
+        self._last_error = ""
 
     def is_configured(self) -> bool:
         """Check if Supabase URL and Key are provided."""
         return bool(self.url and self.key and "supabase.co" in self.url)
+
+    def is_available(self) -> bool:
+        """Check if Supabase is configured and circuit breaker is closed (healthy)."""
+        if not self.is_configured():
+            return False
+        if time.time() < self._circuit_open_until:
+            return False
+        return True
+
+    def _record_success(self):
+        """Reset circuit breaker counters upon a successful network call."""
+        self._failure_count = 0
+        self._circuit_open_until = 0.0
+        self._last_error = ""
+
+    def _record_failure(self, error: Exception, cooldown: float = 60.0):
+        """Record network failure and trip circuit breaker to prevent lagging requests."""
+        self._failure_count += 1
+        self._last_error = str(error)
+        err_msg = str(error)
+        is_dns_or_conn = any(term in err_msg for term in (
+            "NameResolutionError", "Failed to resolve", "ConnectionRefused", "Max retries exceeded", "ConnectionError"
+        ))
+        trip_duration = 180.0 if is_dns_or_conn else cooldown
+        self._circuit_open_until = time.time() + trip_duration
+        if self._failure_count <= 2:
+            logger.warning(
+                "Supabase is unreachable (%s). Circuit breaker OPEN for %ds; falling back seamlessly to local SQLite.",
+                error, int(trip_duration)
+            )
+        else:
+            logger.debug("Supabase circuit breaker open: %s", error)
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -33,24 +69,29 @@ class SupabaseService:
 
     def check_tables_exist(self) -> Dict[str, bool]:
         """Check if camps and records tables exist in Supabase schema."""
-        if not self.is_configured():
+        if not self.is_available():
             return {"camps": False, "records": False}
         status = {"camps": False, "records": False}
         try:
-            r = requests.get(f"{self.url}/rest/v1/camps?limit=1", headers=self._headers(), timeout=5)
+            r = requests.get(f"{self.url}/rest/v1/camps?limit=1", headers=self._headers(), timeout=3)
             status["camps"] = (r.status_code == 200)
-        except Exception:
-            pass
+            if status["camps"]:
+                self._record_success()
+        except Exception as e:
+            self._record_failure(e)
+            return status
         try:
-            r = requests.get(f"{self.url}/rest/v1/records?limit=1", headers=self._headers(), timeout=5)
+            r = requests.get(f"{self.url}/rest/v1/records?limit=1", headers=self._headers(), timeout=3)
             status["records"] = (r.status_code == 200)
-        except Exception:
-            pass
+            if status["records"]:
+                self._record_success()
+        except Exception as e:
+            self._record_failure(e)
         return status
 
     def list_camps_with_stats(self) -> Optional[List[Dict[str, Any]]]:
         """Fetch all camps with computed intake stats from Supabase."""
-        if not self.is_configured():
+        if not self.is_available():
             return None
 
         try:
@@ -58,7 +99,7 @@ class SupabaseService:
             r = requests.get(
                 f"{self.url}/rest/v1/camps?select=*&order=created_at.desc",
                 headers=self._headers(),
-                timeout=10
+                timeout=5
             )
             r.raise_for_status()
             camps = [
@@ -74,9 +115,10 @@ class SupabaseService:
             rec_res = requests.get(
                 f"{self.url}/rest/v1/records?select=id,camp_id,status,person_name",
                 headers=self._headers(),
-                timeout=10
+                timeout=5
             )
             rec_res.raise_for_status()
+            self._record_success()
             records = [
                 rec for rec in rec_res.json()
                 if rec.get("status") != "archived_mock" and
@@ -118,12 +160,12 @@ class SupabaseService:
                 })
             return enriched
         except Exception as e:
-            logger.error("Supabase list_camps error: %s", e)
+            self._record_failure(e)
             return None
 
     def get_camp_by_id(self, camp_id: str) -> Optional[Dict[str, Any]]:
         """Fetch single camp by ID."""
-        if not self.is_configured():
+        if not self.is_available():
             return None
         camps = self.list_camps_with_stats()
         if not camps:
@@ -135,8 +177,8 @@ class SupabaseService:
 
     def create_camp(self, name: str, expected_records: int = 100, date_str: str = "Today") -> Dict[str, Any]:
         """Create a new screening camp in Supabase."""
-        if not self.is_configured():
-            raise RuntimeError("Supabase credentials not configured.")
+        if not self.is_available():
+            raise RuntimeError("Supabase credentials not configured or host unreachable.")
 
         camp_id = f"camp_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}"
         now = datetime.now(timezone.utc).isoformat()
@@ -147,18 +189,23 @@ class SupabaseService:
             "expected_records": max(1, expected_records),
             "created_at": now
         }
-        res = requests.post(
-            f"{self.url}/rest/v1/camps",
-            headers=self._headers(),
-            json=payload,
-            timeout=10
-        )
-        res.raise_for_status()
-        return self.get_camp_by_id(camp_id) or payload
+        try:
+            res = requests.post(
+                f"{self.url}/rest/v1/camps",
+                headers=self._headers(),
+                json=payload,
+                timeout=5
+            )
+            res.raise_for_status()
+            self._record_success()
+            return self.get_camp_by_id(camp_id) or payload
+        except Exception as e:
+            self._record_failure(e)
+            raise
 
     def list_records(self, camp_id: Optional[str] = None, status: Optional[str] = None, limit: int = 100) -> Optional[List[Dict[str, Any]]]:
         """List records with optional camp isolation and status filters."""
-        if not self.is_configured():
+        if not self.is_available():
             return None
 
         try:
@@ -172,9 +219,10 @@ class SupabaseService:
             res = requests.get(
                 f"{self.url}/rest/v1/records?{qs}",
                 headers=self._headers(),
-                timeout=10
+                timeout=5
             )
             res.raise_for_status()
+            self._record_success()
             rows = res.json()
 
             results = []
@@ -210,7 +258,7 @@ class SupabaseService:
                 })
             return results
         except Exception as e:
-            logger.error("Supabase list_records error: %s", e)
+            self._record_failure(e)
             return None
 
     def insert_record(self, record_data: Dict[str, Any]) -> Dict[str, Any]:

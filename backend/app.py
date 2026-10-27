@@ -148,10 +148,10 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
     supabase_service = SupabaseService()
 
     def is_supabase_enabled() -> bool:
-        """Only attempt Supabase network queries if configured and not running unit tests."""
+        """Only attempt Supabase network queries if configured, healthy (circuit breaker closed), and not running unit tests."""
         if app.config.get("TESTING") or os.environ.get("PYTEST_CURRENT_TEST"):
             return False
-        return supabase_service.is_configured()
+        return supabase_service.is_available()
 
     def get_ai_service() -> AIService:
         provider = os.getenv("AI_PROVIDER", "nvidia" if os.getenv("NVIDIA_API_KEY") else "gemini").lower().strip()
@@ -207,6 +207,7 @@ def create_app(db_path: str = database.DEFAULT_DB_PATH) -> Flask:
             "ai_configured": ai.is_configured(),
             "ai_provider": ai.provider_name(),
             "supabase_configured": supabase_service.is_configured(),
+            "supabase_available": supabase_service.is_available(),
             "supabase_url": supabase_service.url if supabase_service.is_configured() else None,
             "supabase_tables_ready": supabase_ready,
             "supabase_tables": tables_exist,
